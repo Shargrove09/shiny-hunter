@@ -38,7 +38,8 @@ def mewtwo():
     count = 0
     mewtwoPic = True 
     print('Initializing Mewto Hunt')
-    # Start from in game right in front of mewtwo 
+
+    # Player must start from in game right in front of mewtwo 
     countdown(5)
 
     while (mewtwoPic): 
@@ -59,6 +60,8 @@ def mewtwo():
 
         if (shinyMewtwoPic):
             print("SHINY FOUND")
+            screenshot = pyautogui.screenshot(region=(emulator_x, emulator_y, emulator_width, emulator_height))
+
             screenshot.save('shiny_screenshot.png')
             exit()
 
