@@ -62,7 +62,7 @@ def mewtwo():
             print("SHINY FOUND")
             screenshot = pyautogui.screenshot(region=(emulator_x, emulator_y, emulator_width, emulator_height))
 
-            screenshot.save('shiny_screenshot.png')
+            screenshot.save(f'shiny_screenshot_{count}.png')
             exit()
 
 
