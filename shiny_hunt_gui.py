@@ -2,16 +2,18 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from threading import Thread
 from PIL import Image, ImageTk
+import win32gui
+import win32con
+import win32api
 
 
 class ShinyHuntGUI:
-
     def __init__(self, root, mewtwo_function, count, handle_pause):
 
         style = ttk.Style()
 
         style.configure('W.TButton', font=(
-            'calibri', 10, 'bold', 'underline'), foreground='red')
+            'calibri', 10, 'bold', 'underline'), foreground='green')
 
         self.root = root
         self.count = count
@@ -26,8 +28,12 @@ class ShinyHuntGUI:
         self.root.geometry("800x400")
 
         # Left Frame
+        self.left_frame = ttk.Frame(root, width=200, height=350)
+        self.left_frame.grid(row=0, column=0, padx=10, pady=5)
 
         # Right Frame
+        self.right_frame = ttk.Frame(root, width=600, height=350, )
+        self.right_frame.grid(row=0, column=1, pady=10)
 
         # Info Label
         self.info_label = ttk.Label(
@@ -38,30 +44,30 @@ class ShinyHuntGUI:
         # Status Label
         self.status_label = ttk.Label(
             root, text="Press 'Start Hunt' to begin the shiny hunt.")
-        self.status_label.grid(row=1, pady=10, column=1,)
+        self.status_label.grid(row=1, column=1,)
 
         # Start Button
         self.start_button = ttk.Button(
-            root, text="Start Hunt", command=self.start_hunt, style='W.TButton')
-        self.start_button.grid(row=2, column=0, pady=10)
+            self.left_frame, text="Start Hunt", command=self.start_hunt, style='W.TButton')
+        self.start_button.grid(row=2, column=0, pady=10, )
 
         # Pause Button
         self.pause_button = ttk.Button(
-            root, text="Pause Hunt", command=self.handle_pause)
-        self.pause_button.grid(row=3, column=0,)
+            self.left_frame, text="Pause Hunt", command=self.handle_pause)
+        self.pause_button.grid(row=3, column=0, padx=25)
 
         # Stop Button
         self.stop_button = ttk.Button(
-            root, text="Stop Hunt", command=print("Stop Hunt"))
-        self.stop_button.grid(row=4)
+            self.left_frame, text="Stop Hunt", command=print("Stop Hunt"))
+        self.stop_button.grid(row=4, padx=2)
 
         # Reset Counter
-        self.reset_count = ttk.Label(root, textvariable=count)
+        self.reset_count = ttk.Label(self.left_frame, textvariable=count)
         self.reset_count.grid(pady=10)
 
         # Select Target Image Button
         self.select_img = ttk.Button(
-            root, text="Select Image: ", command=self.open_file_dialog)
+            self.left_frame, text="Select Image: ", command=self.open_file_dialog)
         self.select_img.grid()
 
         # Target Image

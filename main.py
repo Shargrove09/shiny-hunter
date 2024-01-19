@@ -3,6 +3,8 @@ import pydirectinput
 import time
 import tkinter as tk
 from shiny_hunt_gui import ShinyHuntGUI
+from embedded_app import EmbeddedAppFrame
+import pygetwindow as gw
 
 
 print("You are going to get so many shinies king.")
@@ -19,8 +21,10 @@ pydirectinput.PAUSE = 1
 
 # Reset Count
 count = 1
-
 paused = False
+
+window_titles = gw.getAllTitles()
+print("Window Titles: ", window_titles)
 
 
 def handle_pause():
@@ -99,4 +103,5 @@ if __name__ == '__main__':
     root = tk.Tk()
     count = tk.IntVar(value=1)
     app = ShinyHuntGUI(root, mewtwo, count, handle_pause)
+    app_frame = EmbeddedAppFrame(master=root)
     root.mainloop()
