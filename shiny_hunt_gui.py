@@ -35,12 +35,6 @@ class ShinyHuntGUI:
         self.right_frame = ttk.Frame(root, width=600, height=350, )
         self.right_frame.grid(row=0, column=1, pady=10)
 
-        # Info Label
-        self.info_label = ttk.Label(
-            root, text="Please make sure that the game is open and targeted before clicking start."
-        )
-        self.info_label.grid(row=0, column=1, pady=5)
-
         # Status Label
         self.status_label = ttk.Label(
             root, text="Press 'Start Hunt' to begin the shiny hunt.")

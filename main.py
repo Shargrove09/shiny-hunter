@@ -15,6 +15,7 @@ emulator_y = 0
 emulator_width = 2560  # TODO: Make this a setting
 emulator_height = 1440
 
+
 # Global GUI Time Intervals
 pyautogui.PAUSE = 2
 pydirectinput.PAUSE = 1
