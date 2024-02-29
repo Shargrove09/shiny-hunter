@@ -9,9 +9,7 @@ import win32api
 
 class ShinyHuntGUI:
     def __init__(self, root, mewtwo_function, count, handle_pause):
-
         style = ttk.Style()
-
         style.configure('W.TButton', font=(
             'calibri', 10, 'bold', 'underline'), foreground='green')
 
@@ -31,15 +29,26 @@ class ShinyHuntGUI:
         self.left_frame = ttk.Frame(root, width=200, height=350)
         self.left_frame.grid(row=0, column=0, padx=10, pady=5)
 
-        # Right Frame
-        self.right_frame = ttk.Frame(root, width=600, height=350, )
-        self.right_frame.grid(row=0, column=1, pady=10)
-
         # Status Label
         self.status_label = ttk.Label(
             root, text="Press 'Start Hunt' to begin the shiny hunt.")
-        self.status_label.grid(row=1, column=1,)
+        self.status_label.grid(row=3, column=1,)
 
+        # Reset Counter
+        self.reset_count = ttk.Label(self.left_frame, textvariable=count)
+        self.reset_count.grid(pady=10)
+
+        # Select Target Image Button
+        self.select_img = ttk.Button(
+            self.left_frame, text="Select Image: ", command=self.open_file_dialog)
+        self.select_img.grid()
+
+        # Target Image
+        self.label = tk.Label(root)
+
+        ##################
+        ### LEFT Frame ###
+        ##################
         # Start Button
         self.start_button = ttk.Button(
             self.left_frame, text="Start Hunt", command=self.start_hunt, style='W.TButton')
@@ -55,17 +64,9 @@ class ShinyHuntGUI:
             self.left_frame, text="Stop Hunt", command=print("Stop Hunt"))
         self.stop_button.grid(row=4, padx=2)
 
-        # Reset Counter
-        self.reset_count = ttk.Label(self.left_frame, textvariable=count)
-        self.reset_count.grid(pady=10)
-
-        # Select Target Image Button
-        self.select_img = ttk.Button(
-            self.left_frame, text="Select Image: ", command=self.open_file_dialog)
-        self.select_img.grid()
-
-        # Target Image
-        self.label = tk.Label(root)
+        ###################
+        ### Right Frame ###
+        ###################
 
     def display_selected_image(self, file_path):
         image = Image.open(file_path)
@@ -89,7 +90,7 @@ class ShinyHuntGUI:
         self.hunt_thread.start()
 
     def shiny_hunt_thread(self):
-        # Call your mewtwo function here
+        # Call mewtwo function here
         self.mewtwo_function()
 
         # Update GUI after completion

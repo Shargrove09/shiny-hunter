@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 import win32gui
 import win32con
-import win32api
 import pygetwindow as gw
 
 
@@ -28,7 +27,7 @@ class EmbeddedAppFrame(tk.Frame):
 
         # Frame for embedded app
         self.embed_frame = tk.Frame(self, width=1600, height=500)
-        self.embed_frame.configure(bg="red")
+        self.embed_frame.configure(bg="green")
         self.embed_frame.grid(column=1)
 
         # Button to Unembedd App

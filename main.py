@@ -29,6 +29,7 @@ print("Window Titles: ", window_titles)
 
 
 def handle_pause():
+    global paused
     print("Handling Pause")
     paused = not paused
 
@@ -54,6 +55,7 @@ def countdown(seconds):
 
 
 def increment_count():
+    global count  # Not sure if this or paused needs to be global
     count.set(count.get() + 1)
     app.update_count()  # What am I doing with this?
 
@@ -104,5 +106,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     count = tk.IntVar(value=1)
     app = ShinyHuntGUI(root, mewtwo, count, handle_pause)
+
     app_frame = EmbeddedAppFrame(master=root)
+    app_frame.grid(column=1, row=0)
     root.mainloop()
