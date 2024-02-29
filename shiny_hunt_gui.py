@@ -26,8 +26,8 @@ class ShinyHuntGUI:
         self.root.geometry("800x400")
 
         # Left Frame
-        self.left_frame = ttk.Frame(root, width=200, height=350)
-        self.left_frame.grid(row=0, column=0, padx=10, pady=5)
+        self.left_frame = ttk.Frame(root, width=200, height=400)
+        self.left_frame.grid(row=0, column=0, padx=0, pady=0, sticky="nws")
 
         # Status Label
         self.status_label = ttk.Label(
