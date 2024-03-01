@@ -6,12 +6,16 @@ import pygetwindow as gw
 
 
 class EmbeddedAppFrame(tk.Frame):
-    def __init__(self, master=None):
-        tk.Frame.__init__(self, master)
+    def __init__(self, right_frame, container_frame, master=None):
+        tk.Frame.__init__(self, container_frame)
         self.entry_var = tk.StringVar(value="Playback")
         self.grid(column=1)
+        self.right_frame = right_frame
+        self.container_frame = container_frame
+
         self.create_widgets()
         self.dropdown_var = tk.StringVar()
+
         self.create_dropdown()
 
         self.app_handle = None
@@ -21,28 +25,19 @@ class EmbeddedAppFrame(tk.Frame):
 
     def create_widgets(self):
         # Button to launch embedded app
-        self.launch_button = tk.Button(
-            self, text="Launch Epilogue", command=self.launch_app)
-        self.launch_button.grid(column=0, pady=10)
+        self.launch_button = ttk.Button(
+            self.right_frame, text="Launch Epilogue", command=self.launch_app)
+        self.launch_button.grid(row=0, column=2, sticky="e")
 
         # Frame for embedded app
         self.embed_frame = tk.Frame(self, width=1600, height=500)
-        self.embed_frame.configure(bg="green")
+        self.embed_frame.configure(bg="#2a2b2a")
         self.embed_frame.grid(column=1)
 
         # Button to Unembedd App
-        self.unembedd_button = tk.Button(
-            self, text="Unembed App", command=self.unembed_app)
-        self.unembedd_button.grid(column=0)
-
-        # # User Input
-        # input_entry = tk.Entry(self, textvariable=self.entry_var)
-        # input_entry.grid(pady=10)
-
-        # # Get User Input Button
-        # get_input_button = tk.Button(
-        #     self, text="Get Input", command=self.get_user_input)
-        # get_input_button.grid()
+        self.unembedd_button = ttk.Button(
+            self.right_frame, text="Unembed App", command=self.unembed_app)
+        self.unembedd_button.grid(row=1, column=2)
 
     def launch_app(self):
         # Find app window handle
@@ -68,13 +63,10 @@ class EmbeddedAppFrame(tk.Frame):
             print("No Embedded winto to unembed")
 
     def unembed_on_close(self):
-        print("Unembdding on Close")
+        print("Closing App! Unembedding Window if necessary!")
         self.unembed_app()
         self.master.destroy()
 
-    def get_user_input(self):
-        user_input = self.entry_var.get()
-        print("User Input: ", user_input)
 
     # Window Dropdown
 

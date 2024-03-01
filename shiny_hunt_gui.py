@@ -2,32 +2,37 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from threading import Thread
 from PIL import Image, ImageTk
-import win32gui
-import win32con
-import win32api
+import sv_ttk
 
 
 class ShinyHuntGUI:
     def __init__(self, root, mewtwo_function, count, handle_pause):
         style = ttk.Style()
-        style.configure('W.TButton', font=(
+
+        sv_ttk.set_theme("dark")
+        style.configure('start.TButton', font=(
             'calibri', 10, 'bold', 'underline'), foreground='green')
+
+        style.configure('side.TFrame', background="#2a2b2a")
 
         self.root = root
         self.count = count
-        self.root.title("Shiny Hunt v0.1")
+
         self.mewtwo_function = mewtwo_function
         self.handle_pause = handle_pause
 
         # Root Config
-        root.config(bg="#3EB489")
-
-        # GUI Window Size
-        self.root.geometry("800x400")
+        # root.config(bg="#3EB489")
 
         # Left Frame
-        self.left_frame = ttk.Frame(root, width=200, height=400)
-        self.left_frame.grid(row=0, column=0, padx=0, pady=0, sticky="nws")
+        self.left_frame = ttk.Frame(
+            root, width=200, height=400, style='side.TFrame', padding=10)
+        self.left_frame.grid(row=0, column=0, padx=20, pady=0, sticky="nws")
+
+        # Right Frame
+        self.right_frame = ttk.Frame(
+            root, width=200, height=400, style='side.TFrame')
+        self.right_frame.grid(row=0, column=2, padx=20, pady=0, sticky="nes")
 
         # Status Label
         self.status_label = ttk.Label(
@@ -36,12 +41,12 @@ class ShinyHuntGUI:
 
         # Reset Counter
         self.reset_count = ttk.Label(self.left_frame, textvariable=count)
-        self.reset_count.grid(pady=10)
+        self.reset_count.grid(pady=0)
 
         # Select Target Image Button
         self.select_img = ttk.Button(
-            self.left_frame, text="Select Image: ", command=self.open_file_dialog)
-        self.select_img.grid()
+            self.root, text="Select Image: ", command=self.open_file_dialog)
+        self.select_img.grid(row=2, column='2')
 
         # Target Image
         self.label = tk.Label(root)
@@ -51,7 +56,7 @@ class ShinyHuntGUI:
         ##################
         # Start Button
         self.start_button = ttk.Button(
-            self.left_frame, text="Start Hunt", command=self.start_hunt, style='W.TButton')
+            self.left_frame, text="Start Hunt", command=self.start_hunt, style='start.TButton')
         self.start_button.grid(row=2, column=0, pady=10, )
 
         # Pause Button

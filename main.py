@@ -2,6 +2,7 @@ import pyautogui
 import pydirectinput
 import time
 import tkinter as tk
+from tkinter import ttk
 from shiny_hunt_gui import ShinyHuntGUI
 from embedded_app import EmbeddedAppFrame
 import pygetwindow as gw
@@ -104,9 +105,18 @@ def mewtwo():
 
 if __name__ == '__main__':
     root = tk.Tk()
-    count = tk.IntVar(value=1)
+    root.title("Shiny Hunt v0.1")
+    # GUI Window Size
+    root.geometry("800x400")
+    count = tk.IntVar(value=1)  # TODO: Initialize to 0 and on start add one
+
+    container_frame = ttk.Frame(root, padding="10")
+    container_frame.grid(row=0, column=0)
+
     app = ShinyHuntGUI(root, mewtwo, count, handle_pause)
 
-    app_frame = EmbeddedAppFrame(master=root)
+
+    right_frame = app.right_frame
+    app_frame = EmbeddedAppFrame(right_frame, container_frame=root, master=root)
     app_frame.grid(column=1, row=0)
     root.mainloop()
