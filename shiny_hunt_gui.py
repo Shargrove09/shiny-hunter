@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog
 from threading import Thread
 from PIL import Image, ImageTk
 import sv_ttk
+from styles import shiny_style
 
 
 class ShinyHuntGUI:
@@ -11,12 +12,21 @@ class ShinyHuntGUI:
 
         sv_ttk.set_theme("dark")
         style.configure('start.TButton', font=(
-            'calibri', 10, 'bold', 'underline'), foreground='green')
+            'calibri', 14, 'bold', 'underline'), foreground='green')
+
+        style.configure('standard.TButton', font=(
+            'calibri', 14, 'bold'))
 
         style.configure('side.TFrame', background="#2a2b2a")
 
         self.root = root
         self.count = count
+
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_columnconfigure(1, weight=1)
+        root.grid_columnconfigure(2, weight=1)
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_rowconfigure(1, weight=1)
 
         self.mewtwo_function = mewtwo_function
         self.handle_pause = handle_pause
@@ -61,12 +71,12 @@ class ShinyHuntGUI:
 
         # Pause Button
         self.pause_button = ttk.Button(
-            self.left_frame, text="Pause Hunt", command=self.handle_pause)
+            self.left_frame, text="Pause Hunt", command=self.handle_pause, style="standard.TButton")
         self.pause_button.grid(row=3, column=0, padx=25)
 
         # Stop Button
         self.stop_button = ttk.Button(
-            self.left_frame, text="Stop Hunt", command=print("Stop Hunt"))
+            self.left_frame, text="Stop Hunt", command=print("Stop Hunt"), style="standard.TButton")
         self.stop_button.grid(row=4, padx=2)
 
         ###################
