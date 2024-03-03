@@ -9,15 +9,15 @@ from styles import shiny_style
 class ShinyHuntGUI:
     def __init__(self, root, mewtwo_function, count, handle_pause):
         style = ttk.Style()
-
         sv_ttk.set_theme("dark")
+
         style.configure('start.TButton', font=(
             'calibri', 14, 'bold', 'underline'), foreground='green')
-
         style.configure('standard.TButton', font=(
             'calibri', 14, 'bold'))
-
         style.configure('side.TFrame', background="#2a2b2a")
+        style.configure('reset.TLabel', font=(
+            'calibri', 14, 'bold'))
 
         self.root = root
         self.count = count
@@ -49,10 +49,6 @@ class ShinyHuntGUI:
             root, text="Press 'Start Hunt' to begin the shiny hunt.")
         self.status_label.grid(row=3, column=1,)
 
-        # Reset Counter
-        self.reset_count = ttk.Label(self.left_frame, textvariable=count)
-        self.reset_count.grid(pady=0)
-
         # Select Target Image Button
         self.select_img = ttk.Button(
             self.root, text="Select Image: ", command=self.open_file_dialog)
@@ -78,6 +74,11 @@ class ShinyHuntGUI:
         self.stop_button = ttk.Button(
             self.left_frame, text="Stop Hunt", command=print("Stop Hunt"), style="standard.TButton")
         self.stop_button.grid(row=4, padx=2)
+
+        # Reset Counter
+        self.reset_count = ttk.Label(
+            self.left_frame, textvariable=count, style='reset.TLabel')
+        self.reset_count.grid(row=5, pady=(10, 0), )
 
         ###################
         ### Right Frame ###
