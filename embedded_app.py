@@ -87,7 +87,7 @@ class EmbeddedAppFrame(tk.Frame):
 
         # Dropdown Menu
         self.window_dropdown = ttk.Combobox(
-            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), font="calibri 16 ", style='dropdown.TCombobox')
+            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), font="calibri 16", style='dropdown.TCombobox')
         self.window_dropdown.grid(column=2, row=4, pady=10)
 
         self.window_dropdown.set("Select Window")

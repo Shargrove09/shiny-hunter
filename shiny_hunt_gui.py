@@ -38,15 +38,15 @@ class ShinyHuntGUI:
         # Root Config
         # root.config(bg="#3EB489")
 
-        # Left Frame
+        # Left Frame Initialization
         self.left_frame = ttk.Frame(
             root, width=200, height=400, style='side.TFrame', padding=10)
-        self.left_frame.grid(row=0, column=0, padx=20, pady=0, sticky="nws")
+        self.left_frame.grid(row=0, column=0, padx=20, pady=40, sticky="nws")
 
         # Right Frame
         self.right_frame = ttk.Frame(
             root, width=200, height=400, style='side.TFrame')
-        self.right_frame.grid(row=0, column=2, padx=20, pady=0, sticky="nes")
+        self.right_frame.grid(row=0, column=2, padx=20, pady=40, sticky="nes")
 
         # Status Label
         self.status_label = ttk.Label(
@@ -58,8 +58,8 @@ class ShinyHuntGUI:
             self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
         self.select_img.grid(row=2, column=2)
 
-        # Target Image
-        self.label = tk.Label(root)
+        # Target Image - TODO: Add Target Image + Logic
+        self.target_image = tk.Label(self.right_frame)
 
         ##################
         ### LEFT Frame ###
@@ -93,9 +93,9 @@ class ShinyHuntGUI:
         image = image.resize((300, 300))
         photo = ImageTk.PhotoImage(image)
 
-        self.label.config(image=photo)
-        self.label.image = photo
-        self.label.grid()
+        self.target_image.config(image=photo)
+        self.target_image.image = photo
+        self.target_image.grid(row=6, column=2)
 
     def open_file_dialog(self):
         file_path = filedialog.askopenfilename(
