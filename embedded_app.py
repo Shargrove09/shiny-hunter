@@ -31,7 +31,7 @@ class EmbeddedAppFrame(tk.Frame):
         # Button to launch embedded app
         self.launch_button = ttk.Button(
             self.right_frame, text="Launch Epilogue", command=self.launch_app, style='standard.TButton')
-        self.launch_button.grid(row=0, column=2, sticky="e")
+        self.launch_button.grid(row=0, column=2, sticky="")
 
         # Frame for embedded app
         self.embed_frame = tk.Frame(self, width=1600, height=500)
@@ -72,7 +72,6 @@ class EmbeddedAppFrame(tk.Frame):
         self.master.destroy()
 
     # Window Dropdown
-
     def get_window_titles(self):
         window_titles = gw.getAllTitles()
         return window_titles
@@ -82,13 +81,13 @@ class EmbeddedAppFrame(tk.Frame):
         print(f"Selected Window: {selected_window}")
 
     def create_dropdown(self):
-        self.dropdown_label = tk.Label(
-            self.right_frame, text="Select the Game Window: ")
+        self.dropdown_label = ttk.Label(
+            self.right_frame, text="Select the Game Window: ", style='select.TLabel')
         self.dropdown_label.grid(column=2, row=3)
 
         # Dropdown Menu
         self.window_dropdown = ttk.Combobox(
-            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles())
+            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), font="calibri 16 ", style='dropdown.TCombobox')
         self.window_dropdown.grid(column=2, row=4, pady=10)
 
         self.window_dropdown.set("Select Window")

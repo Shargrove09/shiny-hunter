@@ -58,7 +58,7 @@ def countdown(seconds):
 def increment_count():
     global count  # Not sure if this or paused needs to be global
     count.set(count.get() + 1)
-    app.update_count()  # What am I doing with this?
+    app.update_count()  # TODO: What am I doing with this?
 
 
 def mewtwo():
@@ -115,8 +115,8 @@ if __name__ == '__main__':
 
     app = ShinyHuntGUI(root, mewtwo, count, handle_pause)
 
-
     right_frame = app.right_frame
-    app_frame = EmbeddedAppFrame(right_frame, container_frame=root, master=root)
+    app_frame = EmbeddedAppFrame(
+        right_frame, container_frame=root, master=root)
     app_frame.grid(column=1, row=0)
     root.mainloop()

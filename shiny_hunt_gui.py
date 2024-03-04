@@ -18,6 +18,10 @@ class ShinyHuntGUI:
         style.configure('side.TFrame', background="#2a2b2a")
         style.configure('reset.TLabel', font=(
             'calibri', 14, 'bold'))
+        style.configure('status.TLabel', font=(
+            'calibri', 14, 'bold', 'underline'))
+
+        shiny_style()
 
         self.root = root
         self.count = count
@@ -46,13 +50,13 @@ class ShinyHuntGUI:
 
         # Status Label
         self.status_label = ttk.Label(
-            root, text="Press 'Start Hunt' to begin the shiny hunt.")
+            root, text="Press 'Start Hunt' to begin the shiny hunt.", style='status.TLabel')
         self.status_label.grid(row=3, column=1,)
 
         # Select Target Image Button
         self.select_img = ttk.Button(
-            self.root, text="Select Image: ", command=self.open_file_dialog)
-        self.select_img.grid(row=2, column='2')
+            self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
+        self.select_img.grid(row=2, column=2)
 
         # Target Image
         self.label = tk.Label(root)
