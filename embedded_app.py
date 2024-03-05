@@ -34,7 +34,7 @@ class EmbeddedAppFrame(tk.Frame):
         self.launch_button.grid(row=0, column=2, sticky="")
 
         # Frame for embedded app
-        self.embed_frame = tk.Frame(self, width=1600, height=500)
+        self.embed_frame = tk.Frame(self, width=1280, height=960)
         self.embed_frame.configure(bg="#2a2b2a")
         self.embed_frame.grid(column=1)
 

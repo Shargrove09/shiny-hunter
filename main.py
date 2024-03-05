@@ -107,7 +107,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.title("Shiny Hunt v0.1")
     # GUI Window Size
-    root.geometry("800x400")
+    root.geometry("1600x1200")
     count = tk.IntVar(value=1)  # TODO: Initialize to 0 and on start add one
 
     container_frame = ttk.Frame(root, padding="10")

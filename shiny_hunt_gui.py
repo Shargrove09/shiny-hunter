@@ -8,8 +8,9 @@ from styles import shiny_style
 
 class ShinyHuntGUI:
     def __init__(self, root, mewtwo_function, count, handle_pause):
-        style = ttk.Style()
+        ### Styling ###
         sv_ttk.set_theme("dark")
+        style = ttk.Style()
 
         style.configure('start.TButton', font=(
             'calibri', 14, 'bold', 'underline'), foreground='green')
@@ -23,19 +24,22 @@ class ShinyHuntGUI:
 
         shiny_style()
 
-        self.root = root
-        self.count = count
-
+        ### Scaling ###
         root.grid_columnconfigure(0, weight=1)
         root.grid_columnconfigure(1, weight=1)
         root.grid_columnconfigure(2, weight=1)
         root.grid_rowconfigure(0, weight=1)
         root.grid_rowconfigure(1, weight=1)
 
+        self.count = count
+        self.paused = False
+        self.stopped = False
+
         self.mewtwo_function = mewtwo_function
         self.handle_pause = handle_pause
 
         # Root Config
+        self.root = root
         # root.config(bg="#3EB489")
 
         # Left Frame Initialization
@@ -71,7 +75,7 @@ class ShinyHuntGUI:
 
         # Pause Button
         self.pause_button = ttk.Button(
-            self.left_frame, text="Pause Hunt", command=self.handle_pause, style="standard.TButton")
+            self.left_frame, text="Pause Hunt", command=self.toggle_pause, style="standard.TButton")
         self.pause_button.grid(row=3, column=0, padx=25)
 
         # Stop Button
@@ -119,3 +123,12 @@ class ShinyHuntGUI:
 
     def update_count(self):
         self.count.set(self.count.get())
+
+    def toggle_pause(self):
+        # TODO: Decide where to store paused state - main or here
+        self.paused = not self.paused
+        self.handle_pause
+        if self.paused:
+            self.status_label.config(text="Hunt Paused")
+        else:
+            self.status_label.config(text="Mewtwo Hunt in progress...")
