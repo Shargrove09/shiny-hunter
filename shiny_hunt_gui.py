@@ -7,7 +7,7 @@ from styles import shiny_style
 
 
 class ShinyHuntGUI:
-    def __init__(self, root, mewtwo_function, count, handle_pause):
+    def __init__(self, root, input_thread, count, handle_pause, handle_stop):
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
@@ -35,8 +35,9 @@ class ShinyHuntGUI:
         self.paused = False
         self.stopped = False
 
-        self.mewtwo_function = mewtwo_function
+        self.input_thread = input_thread
         self.handle_pause = handle_pause
+        self.handle_stop = handle_stop
 
         # Root Config
         self.root = root
@@ -50,20 +51,12 @@ class ShinyHuntGUI:
         # Right Frame
         self.right_frame = ttk.Frame(
             root, width=200, height=400, style='side.TFrame')
-        self.right_frame.grid(row=0, column=2, padx=20, pady=40, sticky="nes")
+        self.right_frame.grid(row=0, column=2, padx=20, pady=40, sticky="ns")
 
         # Status Label
         self.status_label = ttk.Label(
             root, text="Press 'Start Hunt' to begin the shiny hunt.", style='status.TLabel')
         self.status_label.grid(row=3, column=1,)
-
-        # Select Target Image Button
-        self.select_img = ttk.Button(
-            self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
-        self.select_img.grid(row=2, column=2)
-
-        # Target Image - TODO: Add Target Image + Logic
-        self.target_image = tk.Label(self.right_frame)
 
         ##################
         ### LEFT Frame ###
@@ -80,7 +73,7 @@ class ShinyHuntGUI:
 
         # Stop Button
         self.stop_button = ttk.Button(
-            self.left_frame, text="Stop Hunt", command=print("Stop Hunt"), style="standard.TButton")
+            self.left_frame, text="Stop Hunt", command=self.stop_hunt, style="standard.TButton")
         self.stop_button.grid(row=4, padx=2)
 
         # Reset Counter
@@ -91,6 +84,16 @@ class ShinyHuntGUI:
         ###################
         ### Right Frame ###
         ###################
+
+        # Select Target Image Button
+        self.select_img = ttk.Button(
+            self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
+        # TODO: Feature: Allow user to select own target image
+        self.select_img.config(state='disabled')
+        self.select_img.grid(row=2, column=2)
+
+        # Target Image - TODO: Add Target Image + Logic
+        self.target_image = tk.Label(self.right_frame)
 
     def display_selected_image(self, file_path):
         image = Image.open(file_path)
@@ -110,9 +113,10 @@ class ShinyHuntGUI:
     def start_hunt(self):
         self.status_label.config(text="Mewtwo Hunt in progress...")
         self.start_button.config(state="disabled")
-        self.hunt_thread = Thread(target=self.shiny_hunt_thread)
-        self.hunt_thread.start()
 
+        self.input_thread.start()
+
+    # We should never enter here // we shouldnt need too
     def shiny_hunt_thread(self):
         # Call mewtwo function here
         self.mewtwo_function()
@@ -126,9 +130,16 @@ class ShinyHuntGUI:
 
     def toggle_pause(self):
         # TODO: Decide where to store paused state - main or here
+
         self.paused = not self.paused
-        self.handle_pause
         if self.paused:
             self.status_label.config(text="Hunt Paused")
         else:
             self.status_label.config(text="Mewtwo Hunt in progress...")
+        self.handle_pause()
+
+    def stop_hunt(self):
+        print('Stopping Hunt')
+        self.handle_stop()
+        self.start_button.config(state="enabled")
+        self.status_label.config(text="Mewtwo Hunt stopped.")

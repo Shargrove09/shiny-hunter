@@ -6,6 +6,8 @@ from tkinter import ttk
 from shiny_hunt_gui import ShinyHuntGUI
 from embedded_app import EmbeddedAppFrame
 import pygetwindow as gw
+import threading
+import sys
 
 
 print("You are going to get so many shinies king.")
@@ -15,15 +17,15 @@ emulator_x = 0
 emulator_y = 0
 emulator_width = 2560  # TODO: Make this a setting
 emulator_height = 1440
-
-
-# Global GUI Time Intervals
 pyautogui.PAUSE = 2
-pydirectinput.PAUSE = 1
+pydirectinput.PAUSE = 0.8
 
 # Reset Count
-count = 1
+count = 0
 paused = False
+stopped = False
+pause_lock = threading.Lock()
+
 
 window_titles = gw.getAllTitles()
 print("Window Titles: ", window_titles)
@@ -32,6 +34,7 @@ print("Window Titles: ", window_titles)
 def handle_pause():
     global paused
     print("Handling Pause")
+
     paused = not paused
 
 
@@ -61,62 +64,108 @@ def increment_count():
     app.update_count()  # TODO: What am I doing with this?
 
 
-def mewtwo():
+# TODO: Make sure all references of "mewtwo" function named is removed
+def attempt_encounter():
     global count
     mewtwoPic = True
-    print('Initializing Mewto Hunt')
+    print('Initializing Mewtwo Hunt')
 
-    # Player must start from in game right in front of mewtwo
-    countdown(5)
+    # Should increment count at beginning of this loop
+    increment_count()
+    print("Attempt #", count.get())
 
-    while (mewtwoPic and not paused):
-        print("Attempt #", count.get())
-        pydirectinput.press('x')
-        pydirectinput.press('x')
-        # Check if shiny
-        time.sleep(5)
+    # Assumes Player is directly in front of encounter and needs to click through one panel of text
+    input('x')
+    input('x')
 
-        shinyMewtwoPic = pyautogui.locateOnScreen('green.png')
+    # Delay to give time to check for shiny
+    time.sleep(5)
 
-        print("Mewtwo Pic", shinyMewtwoPic)
+    # TODO: Generalize variable name
+    shinyMewtwoPic = pyautogui.locateOnScreen('green.png')
+    print("Mewtwo Pic", shinyMewtwoPic)
 
+    screenshot = pyautogui.screenshot(
+        region=(emulator_x, emulator_y, emulator_width, emulator_height))
+    screenshot.save('emulator_screenshot.png')
+
+    if (shinyMewtwoPic):
+        print("SHINY FOUND")
         screenshot = pyautogui.screenshot(
             region=(emulator_x, emulator_y, emulator_width, emulator_height))
 
-        screenshot.save('emulator_screenshot.png')
+        screenshot.save(f'shiny_screenshot_{count}.png')
+        exit()
 
-        if (shinyMewtwoPic):
-            print("SHINY FOUND")
-            screenshot = pyautogui.screenshot(
-                region=(emulator_x, emulator_y, emulator_width, emulator_height))
+    # Restart game if shiny isn't found
+    restart()
 
-            screenshot.save(f'shiny_screenshot_{count}.png')
-            exit()
+    # Input Sequence to get through FRLG start menu
+    # TODO: Look into adding options for different games O_o
+    input('x')
+    input('x')
+    input('x')
+    input('x')
+    input('z')
 
-        # if not shiny restart game
-        restart()
-        increment_count()
-        pydirectinput.press('x')
-        pydirectinput.press('x')
-        pydirectinput.press('x')
-        pydirectinput.press('x')
-        pydirectinput.press('z')
+
+def input(input):
+    global stopped
+    global paused
+
+    while True:
+        if stopped:
+            sys.exit()
+
+        if not paused:
+            simulate_mouse_click(right_frame)
+            pydirectinput.press(input)
+            break
+        print("We are paused")
+        time.sleep(0.1)
+
+
+def mewtwo_with_pause():
+    global paused
+    global stopped
+    countdown(5)
+    while (not stopped):
+        with pause_lock:
+            if not paused:
+                attempt_encounter()
+        time.sleep(0.1)
+    sys.exit()
+
+
+def stop_hunt():
+    global stopped
+    stopped = not stopped
+
+
+def simulate_mouse_click(frame):
+    # Generate a virtual event for a button press
+    print('Simulating Mouse Click')
+    frame.event_generate('<1>', x=600, y=550)
 
 
 if __name__ == '__main__':
     root = tk.Tk()
     root.title("Shiny Hunt v0.1")
     # GUI Window Size
-    root.geometry("1600x1200")
-    count = tk.IntVar(value=1)  # TODO: Initialize to 0 and on start add one
+    root.geometry("1680x1260")
+    # TODO: Initialize to 0 and on start add one
+    count = tk.IntVar(value=count)
 
     container_frame = ttk.Frame(root, padding="10")
     container_frame.grid(row=0, column=0)
 
-    app = ShinyHuntGUI(root, mewtwo, count, handle_pause)
+    input_thread = threading.Thread(target=mewtwo_with_pause)
+
+    app = ShinyHuntGUI(root, input_thread, count, handle_pause, stop_hunt)
 
     right_frame = app.right_frame
     app_frame = EmbeddedAppFrame(
         right_frame, container_frame=root, master=root)
     app_frame.grid(column=1, row=0)
+
     root.mainloop()
