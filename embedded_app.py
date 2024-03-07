@@ -47,7 +47,6 @@ class EmbeddedAppFrame(tk.Frame):
         # Find app window handle
         print("Looking for: ", self.dropdown_var.get())
         self.app_handle = win32gui.FindWindow(None, self.dropdown_var.get())
-
         # Setting Parent of App window to be embedded frame
         win32gui.SetParent(self.app_handle, int(self.embed_frame.winfo_id()))
 

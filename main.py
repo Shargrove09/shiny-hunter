@@ -8,6 +8,10 @@ from embedded_app import EmbeddedAppFrame
 import pygetwindow as gw
 import threading
 import sys
+import win32gui
+import win32con
+import win32api
+import autoit
 
 
 print("You are going to get so many shinies king.")
@@ -39,6 +43,8 @@ def handle_pause():
 
 
 def restart():
+    print("Restarting!")
+    # Restart Sequence
     pydirectinput.keyDown('backspace')
     pydirectinput.keyDown('enter')
     pydirectinput.keyDown('x')
@@ -47,6 +53,14 @@ def restart():
     pydirectinput.keyUp('enter')
     pydirectinput.keyUp('x')
     pydirectinput.keyUp('z')
+
+    # Input Sequence to get through FRLG start menu
+    # TODO: Look into adding options for different games O_o
+    input('x')
+    input('x')
+    input('x')
+    input('x')
+    input('z')
 
     return True
 
@@ -100,14 +114,6 @@ def attempt_encounter():
     # Restart game if shiny isn't found
     restart()
 
-    # Input Sequence to get through FRLG start menu
-    # TODO: Look into adding options for different games O_o
-    input('x')
-    input('x')
-    input('x')
-    input('x')
-    input('z')
-
 
 def input(input):
     global stopped
@@ -118,7 +124,12 @@ def input(input):
             sys.exit()
 
         if not paused:
-            simulate_mouse_click(right_frame)
+            title = getTitle()
+            print(title)
+            # autoit.mouse_click("left", 500, 500)
+
+            autoit.control_click(
+                "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
             pydirectinput.press(input)
             break
         print("We are paused")
@@ -142,10 +153,12 @@ def stop_hunt():
     stopped = not stopped
 
 
-def simulate_mouse_click(frame):
-    # Generate a virtual event for a button press
-    print('Simulating Mouse Click')
-    frame.event_generate('<1>', x=600, y=550)
+def getHandle():
+    return app_frame.app_handle
+
+
+def getTitle():
+    return app_frame.dropdown_var.get()
 
 
 if __name__ == '__main__':
