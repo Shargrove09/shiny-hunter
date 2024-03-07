@@ -128,9 +128,11 @@ def input(input):
             print(title)
             # autoit.mouse_click("left", 500, 500)
 
-            autoit.control_click(
-                "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
-            pydirectinput.press(input)
+            # autoit.control_click(
+            #     "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
+            # pydirectinput.press(input)
+            # TODO: Need to siwtch this to playback class
+            autoit.control_send("[CLASS:Notepad]", "", input)
             break
         print("We are paused")
         time.sleep(0.1)
