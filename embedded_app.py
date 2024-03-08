@@ -9,7 +9,8 @@ import pywinauto
 
 class EmbeddedAppFrame(tk.Frame):
     def __init__(self, right_frame, app, container_frame, master=None):
-        tk.Frame.__init__(self, container_frame)
+        tk.Frame.__init__(self, container_frame,
+                          relief='sunken', borderwidth=2)
         self.entry_var = tk.StringVar(value="Playback")
         self.grid(column=1)
         self.right_frame = right_frame
@@ -33,7 +34,7 @@ class EmbeddedAppFrame(tk.Frame):
         # Button to launch embedded app
         self.launch_button = ttk.Button(
             self.right_frame, text="Launch Epilogue", command=self.launch_app, style='standard.TButton')
-        self.launch_button.grid(row=0, column=2, sticky="")
+        self.launch_button.grid(row=3, column=2, sticky="")
 
         # Frame for embedded app
         self.embed_frame = tk.Frame(self, width=1280, height=960)
@@ -43,7 +44,7 @@ class EmbeddedAppFrame(tk.Frame):
         # Button to Unembedd App
         self.unembedd_button = ttk.Button(
             self.right_frame, text="Unembed App", command=self.unembed_app, style='standard.TButton')
-        self.unembedd_button.grid(row=1, column=2)
+        self.unembedd_button.grid(row=4, column=2)
 
     def launch_app(self):
         # Find app window handle
@@ -84,13 +85,13 @@ class EmbeddedAppFrame(tk.Frame):
 
     def create_dropdown(self):
         self.dropdown_label = ttk.Label(
-            self.right_frame, text="Select the Game Window: ", style='select.TLabel')
-        self.dropdown_label.grid(column=2, row=3)
+            self.right_frame, text="Select the Game Window", style='select.TLabel')
+        self.dropdown_label.grid(column=2, row=1)
 
         # Dropdown Menu
         self.window_dropdown = ttk.Combobox(
-            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), font="calibri 16", style='dropdown.TCombobox')
-        self.window_dropdown.grid(column=2, row=4, pady=10)
+            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), width=16, font=('calibri', 8, 'bold'), style='dropdown.TCombobox')
+        self.window_dropdown.grid(column=2, row=2, pady=10)
 
         self.window_dropdown.set("Select Window")
 

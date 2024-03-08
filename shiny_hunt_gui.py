@@ -13,23 +13,23 @@ class ShinyHuntGUI:
         style = ttk.Style()
 
         style.configure('start.TButton', font=(
-            'calibri', 14, 'bold', 'underline'), foreground='green')
+            'calibri', 12, 'bold', 'underline'), foreground='green')
         style.configure('standard.TButton', font=(
-            'calibri', 14, 'bold'))
+            'calibri', 12, 'bold'))
         style.configure('side.TFrame', background="#2a2b2a")
         style.configure('reset.TLabel', font=(
-            'calibri', 14, 'bold'))
+            'calibri', 12, 'bold'))
         style.configure('status.TLabel', font=(
-            'calibri', 14, 'bold', 'underline'))
+            'calibri', 12, 'bold', 'underline'))
 
         shiny_style()
 
         ### Scaling ###
         root.grid_columnconfigure(0, weight=1)
-        root.grid_columnconfigure(1, weight=1)
+        root.grid_columnconfigure(1, weight=3)
         root.grid_columnconfigure(2, weight=1)
-        root.grid_rowconfigure(0, weight=1)
-        root.grid_rowconfigure(1, weight=1)
+        # root.grid_rowconfigure(0, weight=1)
+        # root.grid_rowconfigure(1, weight=1)
 
         self.count = count
         self.paused = False
@@ -86,14 +86,14 @@ class ShinyHuntGUI:
         ###################
 
         # Select Target Image Button
-        self.select_img = ttk.Button(
-            self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
+        # self.select_img = ttk.Button(
+        #     self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
         # TODO: Feature: Allow user to select own target image
-        self.select_img.config(state='disabled')
-        self.select_img.grid(row=2, column=2)
+        # self.select_img.config(state='disabled')
+        # self.select_img.grid(row=2, column=2)
 
         # Target Image - TODO: Add Target Image + Logic
-        self.target_image = tk.Label(self.right_frame)
+        # self.target_image = tk.Label(self.right_frame)
 
     def display_selected_image(self, file_path):
         image = Image.open(file_path)

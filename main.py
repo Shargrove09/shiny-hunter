@@ -128,6 +128,8 @@ def attempt_encounter():
     # Restart game if shiny isn't found
     restart()
 
+# TODO: Optimize time and look into utlizing built in input delays from pyauto
+
 
 def input(input):
     global stopped
@@ -140,13 +142,7 @@ def input(input):
 
     if not paused:
         title = getTitle()
-        # autoit.mouse_click("left", 500, 500)
-
-        # autoit.control_click(
-        #     "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
         # pydirectinput.press(input)
-        # TODO: Need to siwtch this to playback class
-        # autoit.control_send("[CLASS:Qt660QWindowOwnDCIcon]", "", input)
         print("\nWaiting 2 second")
         time.sleep(2)
         print("Inputing: ", input)
@@ -188,7 +184,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.title("Shiny Hunt v0.1")
     # GUI Window Size
-    root.geometry("1680x1260")
+    root.geometry("1920x1080")
     # TODO: Initialize to 0 and on start add one
     count = tk.IntVar(value=count)
 
