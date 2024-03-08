@@ -4,15 +4,17 @@ import win32gui
 import win32con
 import pygetwindow as gw
 from styles import shiny_style
+import pywinauto
 
 
 class EmbeddedAppFrame(tk.Frame):
-    def __init__(self, right_frame, container_frame, master=None):
+    def __init__(self, right_frame, app, container_frame, master=None):
         tk.Frame.__init__(self, container_frame)
         self.entry_var = tk.StringVar(value="Playback")
         self.grid(column=1)
         self.right_frame = right_frame
         self.container_frame = container_frame
+        self.app = app
 
         # Import Button Styles
         shiny_style()
@@ -49,6 +51,7 @@ class EmbeddedAppFrame(tk.Frame):
         self.app_handle = win32gui.FindWindow(None, self.dropdown_var.get())
         # Setting Parent of App window to be embedded frame
         win32gui.SetParent(self.app_handle, int(self.embed_frame.winfo_id()))
+        self.app.connect(handle=self.app_handle)
 
         # Adjust the size and position of the embedded window
         win32gui.MoveWindow(self.app_handle, 0, 0, self.embed_frame.winfo_width(

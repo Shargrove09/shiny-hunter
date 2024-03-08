@@ -12,6 +12,7 @@ import win32gui
 import win32con
 import win32api
 import autoit
+from pywinauto.application import Application
 
 
 print("You are going to get so many shinies king.")
@@ -44,23 +45,36 @@ def handle_pause():
 
 def restart():
     print("Restarting!")
-    # Restart Sequence
-    pydirectinput.keyDown('backspace')
-    pydirectinput.keyDown('enter')
-    pydirectinput.keyDown('x')
-    pydirectinput.keyDown('z')
-    pydirectinput.keyUp('backspace')
-    pydirectinput.keyUp('enter')
-    pydirectinput.keyUp('x')
-    pydirectinput.keyUp('z')
+    time.sleep(1)
+    # Restart Sequence - (A + B Start + Select)
+    # pydirectinput.keyDown('backspace')
+    # pydirectinput.keyDown('enter')
+    # pydirectinput.keyDown('x')
+    # pydirectinput.keyDown('z')
+    # pydirectinput.keyUp('backspace')
+    # pydirectinput.keyUp('enter')
+    # pydirectinput.keyUp('x')
+    # pydirectinput.keyUp('z')
+
+    pyApp.window(title=getTitle(),
+                 top_level_only=False, active_only=False).send_keystrokes('{x down}' '{z down}' '{ENTER down}' '{BACKSPACE down}''{x up}' '{z up}' '{ENTER up}' '{BACKSPACE up}')
+
+    time.sleep(7)
 
     # Input Sequence to get through FRLG start menu
     # TODO: Look into adding options for different games O_o
     input('x')
+    print('Waiting 3 secs!')
+    time.sleep(3)
     input('x')
+    print('Waiting 3 secs!')
+    time.sleep(3)
     input('x')
+    time.sleep(3)
+    # # Spare - Catch case not sure if needed
     input('x')
     input('z')
+    time.sleep(1)
 
     return True
 
@@ -118,30 +132,37 @@ def attempt_encounter():
 def input(input):
     global stopped
     global paused
+    global form
+    global pyApp
 
-    while True:
-        if stopped:
-            sys.exit()
+    if stopped:
+        sys.exit()
 
-        if not paused:
-            title = getTitle()
-            print(title)
-            # autoit.mouse_click("left", 500, 500)
+    if not paused:
+        title = getTitle()
+        # autoit.mouse_click("left", 500, 500)
 
-            # autoit.control_click(
-            #     "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
-            # pydirectinput.press(input)
-            # TODO: Need to siwtch this to playback class
-            autoit.control_send("[CLASS:Notepad]", "", input)
-            break
-        print("We are paused")
-        time.sleep(0.1)
+        # autoit.control_click(
+        #     "[CLASS:Qt660QWindowOwnDCIcon; INSTANCE:1]", "", button="primary", x=500, y=500)
+        # pydirectinput.press(input)
+        # TODO: Need to siwtch this to playback class
+        # autoit.control_send("[CLASS:Qt660QWindowOwnDCIcon]", "", input)
+        print("\nWaiting 2 second")
+        time.sleep(2)
+        print("Inputing: ", input)
+        pyApp.window(title=title,
+                     top_level_only=False, active_only=False).send_keystrokes(f'${input} + " down"')
+        time.sleep(0.5)
+        pyApp.window(title=title,
+                     top_level_only=False, active_only=False).send_keystrokes(f'${input} + " up"')
+
+    time.sleep(0.1)
 
 
 def mewtwo_with_pause():
     global paused
     global stopped
-    countdown(5)
+    countdown(3)
     while (not stopped):
         with pause_lock:
             if not paused:
@@ -178,9 +199,10 @@ if __name__ == '__main__':
 
     app = ShinyHuntGUI(root, input_thread, count, handle_pause, stop_hunt)
 
+    pyApp = Application()
     right_frame = app.right_frame
     app_frame = EmbeddedAppFrame(
-        right_frame, container_frame=root, master=root)
+        right_frame, pyApp, container_frame=root, master=root)
     app_frame.grid(column=1, row=0)
 
     root.mainloop()
