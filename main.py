@@ -11,7 +11,6 @@ import sys
 import win32gui
 import win32con
 import win32api
-import autoit
 from pywinauto.application import Application
 
 
@@ -109,21 +108,34 @@ def attempt_encounter():
     # Delay to give time to check for shiny
     time.sleep(5)
 
-    # TODO: Generalize variable name
-    shinyMewtwoPic = pyautogui.locateOnScreen('green.png')
-    print("Mewtwo Pic", shinyMewtwoPic)
+    # Needed to catch image not found exception
+    pyautogui.useImageNotFoundException()
 
-    screenshot = pyautogui.screenshot(
-        region=(emulator_x, emulator_y, emulator_width, emulator_height))
-    screenshot.save('emulator_screenshot.png')
-
-    if (shinyMewtwoPic):
+    try:
+        # TODO: Generalize variable name
+        shinyMewtwoPic = pyautogui.locateOnScreen('green.png')
+        print("Mewtwo Pic", shinyMewtwoPic)
         print("SHINY FOUND")
         screenshot = pyautogui.screenshot(
             region=(emulator_x, emulator_y, emulator_width, emulator_height))
 
         screenshot.save(f'shiny_screenshot_{count}.png')
         exit()
+
+    except pyautogui.ImageNotFoundException:
+        print('')
+
+    screenshot = pyautogui.screenshot(
+        region=(emulator_x, emulator_y, emulator_width, emulator_height))
+    screenshot.save('emulator_screenshot.png')
+
+    # if (shinyMewtwoPic):
+    #     print("SHINY FOUND")
+    #     screenshot = pyautogui.screenshot(
+    #         region=(emulator_x, emulator_y, emulator_width, emulator_height))
+
+    #     screenshot.save(f'shiny_screenshot_{count}.png')
+    #     exit()
 
     # Restart game if shiny isn't found
     restart()
@@ -147,10 +159,10 @@ def input(input):
         time.sleep(1)
         print("Inputing: ", input)
         pyApp.window(title=title,
-                     top_level_only=False, active_only=False).send_keystrokes(f'${input} + " down"')
-        time.sleep(0.5)
-        pyApp.window(title=title,
-                     top_level_only=False, active_only=False).send_keystrokes(f'${input} + " up"')
+                     top_level_only=False, active_only=False).send_keystrokes(input)
+        # time.sleep(0.5)
+        # pyApp.window(title=title,
+        #              top_level_only=False, active_only=False).send_keystrokes(f'${input} + " up"')
 
     time.sleep(0.1)
 
