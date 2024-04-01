@@ -143,8 +143,8 @@ def input(input):
     if not paused:
         title = getTitle()
         # pydirectinput.press(input)
-        print("\nWaiting 2 second")
-        time.sleep(2)
+        print("\nWaiting 1 second")
+        time.sleep(1)
         print("Inputing: ", input)
         pyApp.window(title=title,
                      top_level_only=False, active_only=False).send_keystrokes(f'${input} + " down"')
@@ -183,13 +183,10 @@ def getTitle():
 if __name__ == '__main__':
     root = tk.Tk()
     root.title("Shiny Hunt v0.1")
-    # GUI Window Size
+    # GUI Window Size TODO: Breakpoints?
     root.geometry("1920x1080")
-    # TODO: Initialize to 0 and on start add one
-    count = tk.IntVar(value=count)
 
-    container_frame = ttk.Frame(root, padding="10")
-    container_frame.grid(row=0, column=0)
+    count = tk.IntVar(value=0)
 
     input_thread = threading.Thread(target=mewtwo_with_pause)
 

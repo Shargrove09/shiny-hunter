@@ -33,7 +33,7 @@ class EmbeddedAppFrame(tk.Frame):
     def create_widgets(self):
         # Button to launch embedded app
         self.launch_button = ttk.Button(
-            self.right_frame, text="Launch Epilogue", command=self.launch_app, style='standard.TButton')
+            self.right_frame, text="Launch App", command=self.launch_app, style='standard.TButton')
         self.launch_button.grid(row=3, column=2, sticky="")
 
         # Frame for embedded app
@@ -42,9 +42,10 @@ class EmbeddedAppFrame(tk.Frame):
         self.embed_frame.grid(column=1)
 
         # Button to Unembedd App
-        self.unembedd_button = ttk.Button(
+        self.unembed_button = ttk.Button(
             self.right_frame, text="Unembed App", command=self.unembed_app, style='standard.TButton')
-        self.unembedd_button.grid(row=4, column=2)
+        self.unembed_button.grid(row=4, column=2)
+        self.unembed_button.config(state="disabled")
 
     def launch_app(self):
         # Find app window handle
@@ -61,13 +62,22 @@ class EmbeddedAppFrame(tk.Frame):
         # Show the embedded App Window
         win32gui.ShowWindow(self.app_handle, win32con.SW_SHOW)
 
+        # Enable Unembed Button
+        self.unembed_button.config(state="enabled")
+
+        # Disable Launch Button
+        self.launch_button.config(state="disabled")
+
     def unembed_app(self):
         if self.app_handle:
             win32gui.SetParent(self.app_handle, 0)
             self.app_handle = None
+            # Enable Launch Button
+            self.launch_button.config(state="enabled")
             print("Window Successfully Unembedded.")
+            self.unembed_button.config(state="disabled")
         else:
-            print("No Embedded winto to unembed")
+            print("No Embedded window to unembed")
 
     def unembed_on_close(self):
         print("Closing App! Unembedding Window if necessary!")
