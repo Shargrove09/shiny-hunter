@@ -1,3 +1,4 @@
+from ctypes.wintypes import WCHAR
 import pyautogui
 import pydirectinput
 import time
@@ -46,34 +47,50 @@ def restart():
     print("Restarting!")
     time.sleep(1)
     # Restart Sequence - (A + B Start + Select)
-    # pydirectinput.keyDown('backspace')
-    # pydirectinput.keyDown('enter')
-    # pydirectinput.keyDown('x')
-    # pydirectinput.keyDown('z')
-    # pydirectinput.keyUp('backspace')
-    # pydirectinput.keyUp('enter')
-    # pydirectinput.keyUp('x')
-    # pydirectinput.keyUp('z')
+    pydirectinput.keyDown('backspace')
+    pydirectinput.keyDown('enter')
+    pydirectinput.keyDown('x')
+    pydirectinput.keyDown('z')
+    pydirectinput.keyUp('backspace')
+    pydirectinput.keyUp('enter')
+    pydirectinput.keyUp('x')
+    pydirectinput.keyUp('z')
 
-    pyApp.window(title=getTitle(),
-                 top_level_only=False, active_only=False).send_keystrokes('{x down}' '{z down}' '{ENTER down}' '{BACKSPACE down}''{x up}' '{z up}' '{ENTER up}' '{BACKSPACE up}')
+    # pyApp.window(title=getTitle(),
+    #              top_level_only=False, active_only=True).send_keystrokes('{x down}' '{z down}' '{ENTER down}' '{BACKSPACE down}''{x up}' '{z up}' '{ENTER up}' '{BACKSPACE up}')
 
     time.sleep(7)
 
     # Input Sequence to get through FRLG start menu
     # TODO: Look into adding options for different games O_o
-    input('x')
-    print('Waiting 3 secs!')
+
+    # input('{ENTER}')
+    # time.sleep(5)
+    # input('{ENTER}')
+    # input('{ENTER}')
+
+    pydirectinput.press('enter')
     time.sleep(3)
-    input('x')
-    print('Waiting 3 secs!')
-    time.sleep(3)
-    input('x')
-    time.sleep(3)
-    # # Spare - Catch case not sure if needed
-    input('x')
-    input('z')
-    time.sleep(1)
+    pydirectinput.press('enter')
+    pydirectinput.press('enter')
+
+    # input('x')
+    pydirectinput.press('x')
+
+    # print('Waiting 2 secs!')
+    # time.sleep(2)
+
+    pydirectinput.press('z')
+    # input('z')
+    # input('x')
+    # print('Waiting 3 secs!')
+    # time.sleep(3)
+    # input('x')
+    # time.sleep(3)
+    # # # Spare - Catch case not sure if needed
+    # input('x')
+    # input('z')
+    # time.sleep(1)
 
     return True
 
@@ -102,8 +119,10 @@ def attempt_encounter():
     print("Attempt #", count.get())
 
     # Assumes Player is directly in front of encounter and needs to click through one panel of text
-    input('x')
-    input('x')
+    # input('x')
+    # input('x')
+    pydirectinput.press('x')
+    pydirectinput.press('x')
 
     # Delay to give time to check for shiny
     time.sleep(5)
@@ -113,17 +132,21 @@ def attempt_encounter():
 
     try:
         # TODO: Generalize variable name
-        shinyMewtwoPic = pyautogui.locateOnScreen('green.png')
-        print("Mewtwo Pic", shinyMewtwoPic)
-        print("SHINY FOUND")
+        # shinyMewtwoPic = pyautogui.locateOnScreen('green2.png')
+        # print("Mewtwo Pic", shinyMewtwoPic) x*********
+        expected_picture = pyautogui.locateOnScreen('expected_mewtwo.png')
+        print("Mewtwo Pic", expected_picture) 
+
+        print("Not Shiny")
+
+
+    except pyautogui.ImageNotFoundException:
+        print('Shiny Found!')
         screenshot = pyautogui.screenshot(
-            region=(emulator_x, emulator_y, emulator_width, emulator_height))
+        region=(emulator_x, emulator_y, emulator_width, emulator_height))
 
         screenshot.save(f'shiny_screenshot_{count}.png')
         exit()
-
-    except pyautogui.ImageNotFoundException:
-        print('')
 
     screenshot = pyautogui.screenshot(
         region=(emulator_x, emulator_y, emulator_width, emulator_height))
@@ -158,11 +181,26 @@ def input(input):
         print("\nWaiting 2 second")
         time.sleep(2)
         print("Inputing: ", input)
-        pyApp.window(title=title,
-                     top_level_only=False, active_only=False).send_keystrokes(input)
-        # time.sleep(0.5)
+
+        # if input == 'x':
+        #     input = '0x58'
+        # elif input == 'z':
+        #     input = '0x5A'
+        # elif input == '{ENTER}':
+        #     input = '0x0D'
+
+        # hwndChild = win32gui.GetWindow(getHandle(), win32con.GW_CHILD)
+        # temp = win32api.PostMessage(getHandle(), win32con.WM_CHAR, input, 0)
+        # print(temp)
+
         # pyApp.window(title=title,
-        #              top_level_only=False, active_only=False).send_keystrokes(f'${input} + " up"')
+        #              top_level_only=False, active_only=False).send_keystrokes(input + ' up')
+        # time.sleep(0.5)
+        pyApp.window(title=title,
+                     top_level_only=False, active_only=True).send_keystrokes(input)
+        time.sleep(0.25)
+        # pyApp.window(title=title,
+        #              top_level_only=False, active_only=False).send_keystrokes(input + " up")
 
     time.sleep(0.1)
 
