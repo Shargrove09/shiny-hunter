@@ -1,0 +1,5 @@
+.venv
+__pycache__/embedded_app.cpython-312.pyc
+__pycache__/styles.cpython-312.pyc
+__pycache__/shiny_hunt_gui.cpython-312.pyc
+emulator_screenshot.png
