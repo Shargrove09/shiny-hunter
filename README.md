@@ -88,8 +88,10 @@ Removed sections:
 A Python-based project utilizing tools such as Tkinter and PyAutoGUI that allows the user to embed a running Pokemon game window into the application that then inputs a series of keystroke combinations to automatically encounter desired Pokemon and reset via until it runs into a shiny version of said Pokemon. (See: Shiny Hunting to learn more about shiny hunting) The keystrokes are directly input into the window so the application is able to run minimized and/or in the background to allow use of the computer while the task is completed.
 Currently, as a proof of concept, the application is built only to look for shiny mewtwo colors.
 
+![alt text](https://github.com/[shargrove09]/[shiny-hunter]/shiny-hunter-screenshot.png?raw=true)
 <div align="center"> 
   <img src="https://placehold.co/600x400?text=Your+Screenshot+here" alt="screenshot" />
+	
 </div>
 
 
