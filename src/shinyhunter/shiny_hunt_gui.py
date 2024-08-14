@@ -7,7 +7,7 @@ from styles import shiny_style
 
 
 class ShinyHuntGUI:
-    def __init__(self, root, input_thread, count, handle_pause, handle_stop):
+    def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop):
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
@@ -36,6 +36,7 @@ class ShinyHuntGUI:
         self.stopped = False
 
         self.input_thread = input_thread
+        self.handle_start = handle_start
         self.handle_pause = handle_pause
         self.handle_stop = handle_stop
 
@@ -114,6 +115,8 @@ class ShinyHuntGUI:
         self.status_label.config(text="Mewtwo Hunt in progress...")
         self.start_button.config(state="disabled")
 
+        # Calls start_hunt from shiny_hunt_app
+        self.handle_start()
         self.input_thread.start()
 
     # We should never enter here // we shouldnt need too
