@@ -51,40 +51,16 @@ class ShinyHuntApp:
 
         # pyApp.window(title=getTitle(),
         #              top_level_only=False, active_only=True).send_keystrokes('{x down}' '{z down}' '{ENTER down}' '{BACKSPACE down}''{x up}' '{z up}' '{ENTER up}' '{BACKSPACE up}')
-
         time.sleep(7)
 
         # Input Sequence to get through FRLG start menu
         # TODO: Look into adding options for different games O_o
-
-        # input('{ENTER}')
-        # time.sleep(5)
-        # input('{ENTER}')
-        # input('{ENTER}')
-
         pydirectinput.press('enter')
         time.sleep(3)
         pydirectinput.press('enter')
         pydirectinput.press('enter')
-
-        # input('x')
         pydirectinput.press('x')
-
-        # print('Waiting 2 secs!')
-        # time.sleep(2)
-
         pydirectinput.press('z')
-        # input('z')
-        # input('x')
-        # print('Waiting 3 secs!')
-        # time.sleep(3)
-        # input('x')
-        # time.sleep(3)
-        # # # Spare - Catch case not sure if needed
-        # input('x')
-        # input('z')
-        # time.sleep(1)
-
         return True
 
     # TODO: Make sure all references of "mewtwo" function named is removed
@@ -114,29 +90,27 @@ class ShinyHuntApp:
 
             try:
 
-                shiny_clip = pyautogui.locateOnScreen(
+                green_color_locatation_attempt = pyautogui.locateOnScreen(
                     'green.png')
-                print("Mewtwo Pic", shiny_clip)
 
+                print("Shiny Mewtwo Pic Attempt",
+                      green_color_locatation_attempt)
                 print("Shiny Found!")
-                screenshot.save(f'shiny_screenshot_{self.count}.png')
-
+                self.screenshot_app_and_save('shiny_screenshot.png')
                 exit()
             except pyautogui.ImageNotFoundException:
                 print('No Shiny Found!')
-                screenshot = pyautogui.screenshot(
-                    region=(self.emulator_x, self.emulator_y, self.emulator_width, self.emulator_height))
+                self.screenshot_app_and_save('emulator_screenshot.png')
 
                 self.restart()
 
-            screenshot = pyautogui.screenshot(
-                region=(self.emulator_x, self.emulator_y, self.emulator_width, self.emulator_height))
-            screenshot.save('emulator_screenshot.png')
+    def screenshot_app_and_save(self, name: str):
+        screenshot = pyautogui.screenshot(
+            region=(self.emulator_x, self.emulator_y, self.emulator_width, self.emulator_height))
+        screenshot.save(name)
 
     def increment_count(self):
         self.count += 1
-        # count.set(count.get() + 1)
-        # app.update_count()  # TODO: What am I doing with this?
 
     def start_hunt(self):
         '''
@@ -160,7 +134,7 @@ class ShinyHuntApp:
 
     def input(self, input):
         '''
-        Input method not currently used. DEPRECATED!
+        !!DEPRECATED!! Input method not currently used. !!DEPRECATED!!
         '''
         global stopped
         global paused
