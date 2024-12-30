@@ -2,6 +2,7 @@ import pyautogui
 import pydirectinput
 import time
 import sys
+import os 
 
 
 class ShinyHuntApp:
@@ -88,21 +89,25 @@ class ShinyHuntApp:
             # Needed to catch image not found exception
             pyautogui.useImageNotFoundException()
 
+            reference_image = os.path.abspath('./green.png')
+            base_image = os.path.abspath('./mewtwo.png')
+
             try:
+                regular_mewtwo_locatation_attempt = pyautogui.locateOnScreen(base_image)
+                # green_color_locatation_attempt = pyautogui.locateOnScreen(reference_image)
 
-                green_color_locatation_attempt = pyautogui.locateOnScreen(
-                    'green.png')
-
-                print("Shiny Mewtwo Pic Attempt",
-                      green_color_locatation_attempt)
-                print("Shiny Found!")
-                self.screenshot_app_and_save('shiny_screenshot.png')
-                exit()
-            except pyautogui.ImageNotFoundException:
+                print(" Mewtwo Pic Attempt",
+                      regular_mewtwo_locatation_attempt)
                 print('No Shiny Found!')
                 self.screenshot_app_and_save('emulator_screenshot.png')
 
                 self.restart()
+
+            except pyautogui.ImageNotFoundException:
+                print("Shiny Found!")
+                self.screenshot_app_and_save('shiny_screenshot.png')
+                exit()
+
 
     def screenshot_app_and_save(self, name: str):
         screenshot = pyautogui.screenshot(
