@@ -23,9 +23,19 @@ class EmbeddedAppFrame(tk.Frame):
         self.create_widgets()
         self.dropdown_var = tk.StringVar()
 
-        self.create_dropdown()
+        self.dropdown_var = tk.StringVar(self)
+        self.dropdown = ttk.Combobox(self.right_frame, textvariable=self.dropdown_var)
+        self.dropdown.grid(row=0, column=0)
+        self.populate_dropdown()
+
+        self.refresh_button = ttk.Button(self.right_frame, text="Refresh", command=self.populate_dropdown)
+        self.refresh_button.grid(row=1, column=0)
+
+        # self.create_dropdown()
 
         self.app_handle = None
+
+
 
         # Unembed window on close
         master.protocol("WM_DELETE_WINDOW", self.unembed_on_close)
@@ -41,33 +51,52 @@ class EmbeddedAppFrame(tk.Frame):
         self.embed_frame.configure(bg="#2a2b2a")
         self.embed_frame.grid(column=1)
 
+
+
         # Button to Unembedd App
         self.unembed_button = ttk.Button(
             self.right_frame, text="Unembed App", command=self.unembed_app, style='standard.TButton')
         self.unembed_button.grid(row=4, column=2)
         self.unembed_button.config(state="disabled")
 
+
+
+    def enum_windows_callback(self, handle, handles):
+        window_text = win32gui.GetWindowText(handle)
+        if window_text:
+            handles.append((window_text, handle))
+
+    def get_all_window_handles(self):
+        handles = []
+        win32gui.EnumWindows(self.enum_windows_callback, handles)
+        return handles
+
+    def populate_dropdown(self):
+        handles = self.get_all_window_handles()
+        self.dropdown['values'] = [f"{title} ({handle})" for title, handle in handles]
+
     def launch_app(self):
-        # Find app window handle
-        print("Looking for: ", self.dropdown_var.get())
-        self.app_handle = win32gui.FindWindow(None, self.dropdown_var.get())
-        print("App Handle: ", self.app_handle)
-        # Setting Parent of App window to be embedded frame
-        win32gui.SetParent(self.app_handle, int(self.embed_frame.winfo_id()))
-        self.app.connect(handle=self.app_handle)
+        selected = self.dropdown_var.get()
+        if selected:
+            handle_number = int(selected.split('(')[-1].strip(')'))
+            self.app_handle = handle_number
+            print("App Handle: ", self.app_handle)
 
-        # Adjust the size and position of the embedded window
-        win32gui.MoveWindow(self.app_handle, 0, 0, self.embed_frame.winfo_width(
-        ), self.embed_frame.winfo_height(), True)
+            # Setting Parent of App window to be embedded frame
+            win32gui.SetParent(self.app_handle, int(self.embed_frame.winfo_id()))
+            self.app.connect(handle=self.app_handle)
 
-        # Show the embedded App Window
-        win32gui.ShowWindow(self.app_handle, win32con.SW_SHOW)
+            # Adjust the size and position of the embedded window
+            win32gui.MoveWindow(self.app_handle, 0, 0, self.embed_frame.winfo_width(), self.embed_frame.winfo_height(), True)
 
-        # Enable Unembed Button
-        self.unembed_button.config(state="enabled")
+            # Show the embedded App Window
+            win32gui.ShowWindow(self.app_handle, win32con.SW_SHOW)
 
-        # Disable Launch Button
-        self.launch_button.config(state="disabled")
+            # Enable Unembed Button
+            self.unembed_button.config(state="enabled")
+
+            # Disable Launch Button
+            self.launch_button.config(state="disabled")
 
     def unembed_app(self):
         if self.app_handle:
