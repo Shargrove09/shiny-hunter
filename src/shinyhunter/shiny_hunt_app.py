@@ -3,6 +3,7 @@ import pydirectinput
 import time
 import sys
 import os 
+import cv2
 
 
 class ShinyHuntApp:
@@ -89,24 +90,56 @@ class ShinyHuntApp:
             # Needed to catch image not found exception
             pyautogui.useImageNotFoundException()
 
-            reference_image = os.path.abspath('./green.png')
+            reference_image = os.path.abspath('./shiny_mewtwo_reference_img.png')
             base_image = os.path.abspath('./mewtwo.png')
 
-            try:
-                regular_mewtwo_locatation_attempt = pyautogui.locateOnScreen(base_image)
-                # green_color_locatation_attempt = pyautogui.locateOnScreen(reference_image)
-
-                print(" Mewtwo Pic Attempt",
-                      regular_mewtwo_locatation_attempt)
-                print('No Shiny Found!')
-                self.screenshot_app_and_save('emulator_screenshot.png')
-
-                self.restart()
-
-            except pyautogui.ImageNotFoundException:
-                print("Shiny Found!")
+            if self.is_shiny_found(reference_image, base_image):
+                print('Shiny Found!')
                 self.screenshot_app_and_save('shiny_screenshot.png')
                 exit()
+            else: 
+                print('No Shiny Found!')
+                self.screenshot_app_and_save('emulator_screenshot.png')
+                self.restart()
+
+            # try:
+            #     regular_mewtwo_locatation_attempt = pyautogui.locateOnScreen(base_image)
+            #     # green_color_locatation_attempt = pyautogui.locateOnScreen(reference_image)
+
+            #     print(" Mewtwo Pic Attempt",
+            #           regular_mewtwo_locatation_attempt)
+            #     print('No Shiny Found!')
+            #     self.screenshot_app_and_save('emulator_screenshot.png')
+
+            #     self.restart()
+
+            # except pyautogui.ImageNotFoundException:
+            #     print("Shiny Found!")
+            #     self.screenshot_app_and_save('shiny_screenshot.png')
+            #     exit()
+
+    def is_shiny_found(self,reference_image_path, screenshot_path): 
+        reference_image = cv2.imread(reference_image_path)
+        screenshot = cv2.imread(screenshot_path)
+
+        # Convert images to HSV color space 
+        reference_hsv = cv2.cvtColor(reference_image, cv2.COLOR_BGR2HSV)
+        screenshot_hsv = cv2.cvtColor(screenshot, cv2.COLOR_BGR2HSV)
+
+        # Calc color histograms 
+        reference_hist = cv2.calcHist([reference_hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
+        screenshot_hist = cv2.calcHist([screenshot_hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
+
+        # Normalize histograms
+        cv2.normalize(reference_hist, reference_hist, 0, 1, cv2.NORM_MINMAX)
+        cv2.normalize(screenshot_hist, screenshot_hist, 0, 1, cv2.NORM_MINMAX)
+
+        # Compare histograms 
+        correlation = cv2.compareHist(reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
+        print(f"Correlation: {correlation}")
+
+        threshold = 0.5
+        return correlation > threshold
 
 
     def screenshot_app_and_save(self, name: str):
@@ -136,45 +169,3 @@ class ShinyHuntApp:
         self.running = False
         if self.thread:
             self.thread.join()
-
-    def input(self, input):
-        '''
-        !!DEPRECATED!! Input method not currently used. !!DEPRECATED!!
-        '''
-        global stopped
-        global paused
-        global form
-        global pyApp
-
-        if stopped:
-            sys.exit()
-
-        if not paused:
-            title = getTitle()
-            # pydirectinput.press(input)
-            print("\nWaiting 1 second")
-            time.sleep(1)
-
-            print("Inputing: ", input)
-
-            # if input == 'x':
-            #     input = '0x58'
-            # elif input == 'z':
-            #     input = '0x5A'
-            # elif input == '{ENTER}':
-            #     input = '0x0D'
-
-            # hwndChild = win32gui.GetWindow(getHandle(), win32con.GW_CHILD)
-            # temp = win32api.PostMessage(getHandle(), win32con.WM_CHAR, input, 0)
-            # print(temp)
-
-            # pyApp.window(title=title,
-            #              top_level_only=False, active_only=False).send_keystrokes(input + ' up')
-            # time.sleep(0.5)
-            pyApp.window(title=title,
-                         top_level_only=False, active_only=True).send_keystrokes(input)
-            time.sleep(0.25)
-            # pyApp.window(title=title,
-            #              top_level_only=False, active_only=False).send_keystrokes(input + " up")
-
-        time.sleep(0.1)
