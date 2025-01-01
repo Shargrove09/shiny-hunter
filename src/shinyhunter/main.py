@@ -1,23 +1,15 @@
-from ctypes.wintypes import WCHAR
 import pyautogui
 import pydirectinput
-import time
 import tkinter as tk
 from tkinter import ttk
 from shiny_hunt_gui import ShinyHuntGUI
 from embedded_app import EmbeddedAppFrame
 import pygetwindow as gw
 import threading
-import sys
-import win32gui
-import win32con
-import win32api
 from pywinauto.application import Application
-from shiny_hunt_app import ShinyHuntApp
+from shiny_hunter_controller import ShinyHunterController
 
-
-print("You are going to get so many shinies king.")
-
+# TODO: Move to .env 
 # Size that screen cap looks at
 emulator_x = 0
 emulator_y = 0
@@ -53,33 +45,40 @@ def stop_hunt():
 
 
 def getHandle():
-    return app_frame.app_handle
+    return embedded_app_frame.app_handle
 
 
 def getTitle():
-    return app_frame.dropdown_var.get()
+    return embedded_app_frame.dropdown_var.get()
 
 
 if __name__ == '__main__':
+    print("You are going to get so many shinies king.")
+
     root = tk.Tk()
-    root.title("Shiny Hunt v0.1")
+    root.title("Shiny Hunt v0.2-alpha")
 
     # GUI Window Size TODO: Breakpoints?
     root.geometry("1920x1080")
 
     count = tk.IntVar(value=0)
 
-    shiny_hunter = ShinyHuntApp()
+
+    shiny_hunter = ShinyHunterController()
 
     input_thread = threading.Thread(target=shiny_hunter.mewtwo_with_pause)
-
     app = ShinyHuntGUI(root, input_thread, count, shiny_hunter.start_hunt,
                        shiny_hunter.pause_hunt, shiny_hunter.stop_hunt)
+    
+    shiny_hunter.set_log_function(app.log_message)
 
-    pyApp = Application()
+
+    pyApp = Application() # TODO: Do we need this if we are using pygetwindow?
     right_frame = app.right_frame
-    app_frame = EmbeddedAppFrame(
+
+
+    embedded_app_frame = EmbeddedAppFrame(
         right_frame, pyApp, container_frame=root, master=root)
-    app_frame.grid(column=1, row=0)
+    embedded_app_frame.grid(column=1, row=0)
 
     root.mainloop()

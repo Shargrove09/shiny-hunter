@@ -6,16 +6,17 @@ import os
 import cv2
 
 
-class ShinyHuntApp:
+class ShinyHunterController:
     '''
     Main driver for shiny hunt application. Includes all core logic and functions.
     '''
 
-    def __init__(self):
+    def __init__(self, log_function=None):
         self.running = False
         self.paused = False
         self.thread = None
         self.count = 0
+        self.log_function = log_function
 
         self.emulator_x = 0
         self.emulator_y = 0
@@ -65,19 +66,26 @@ class ShinyHuntApp:
         pydirectinput.press('z')
         return True
 
-    # TODO: Make sure all references of "mewtwo" function named is removed
+    def set_log_function(self, log_function):
+        self.log_function = log_function
+
+    def log(self, message):
+        if self.log_function:
+            self.log_function(message)
 
     def attempt_encounter(self):
         '''
         Method to handle sequence of encounter procedure (button presses, shiny checking, and resetting)
         '''
         while self.running:
-            print('Initializing Mewtwo Hunt')
+            print('Initializing Shiny Hunt')
+            self.log('Initializing Shiny Hunt')
 
             # Should increment count at beginning of this loop
             self.increment_count()
 
             print("Attempt #", self.count)
+            self.log(f"Attempt #{self.count}")
 
             # Assumes Player is directly in front of encounter and needs to click through one panel of text
 
@@ -95,28 +103,14 @@ class ShinyHuntApp:
 
             if self.is_shiny_found(reference_image, base_image):
                 print('Shiny Found!')
+                self.log('Shiny Found!')
                 self.screenshot_app_and_save('shiny_screenshot.png')
                 exit()
             else: 
                 print('No Shiny Found!')
+                self.log('No Shiny Found!')
                 self.screenshot_app_and_save('emulator_screenshot.png')
                 self.restart()
-
-            # try:
-            #     regular_mewtwo_locatation_attempt = pyautogui.locateOnScreen(base_image)
-            #     # green_color_locatation_attempt = pyautogui.locateOnScreen(reference_image)
-
-            #     print(" Mewtwo Pic Attempt",
-            #           regular_mewtwo_locatation_attempt)
-            #     print('No Shiny Found!')
-            #     self.screenshot_app_and_save('emulator_screenshot.png')
-
-            #     self.restart()
-
-            # except pyautogui.ImageNotFoundException:
-            #     print("Shiny Found!")
-            #     self.screenshot_app_and_save('shiny_screenshot.png')
-            #     exit()
 
     def is_shiny_found(self,reference_image_path, screenshot_path): 
         reference_image = cv2.imread(reference_image_path)
@@ -138,8 +132,36 @@ class ShinyHuntApp:
         correlation = cv2.compareHist(reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
         print(f"Correlation: {correlation}")
 
-        threshold = 0.5
+        threshold = 0.56
         return correlation > threshold
+
+
+    def get_correlation(self, reference_image_path, screenshot_path):
+        ref_image = cv2.imread(reference_image_path)
+        screenshot = cv2.imread(screenshot_path)
+
+        # Convert images to HSV color space
+        reference_hsv = cv2.cvtColor(ref_image, cv2.COLOR_BGR2HSV)
+        screenshot_hsv = cv2.cvtColor(screenshot, cv2.COLOR_BGR2HSV)
+
+        # Calc color histograms
+        reference_hist = cv2.calcHist(
+            [reference_hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
+        screenshot_hist = cv2.calcHist(
+            [screenshot_hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
+
+        # Normalize histograms
+        cv2.normalize(reference_hist, reference_hist, 0, 1, cv2.NORM_MINMAX)
+        cv2.normalize(screenshot_hist, screenshot_hist, 0, 1, cv2.NORM_MINMAX)
+
+        # Compare histograms
+        correlation = cv2.compareHist(
+            reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
+        
+        print(f"Correlation: {correlation}")
+        self.log(f"Correlation: {correlation}")
+
+        return correlation
 
 
     def screenshot_app_and_save(self, name: str):

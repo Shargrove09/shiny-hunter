@@ -4,7 +4,6 @@ import win32gui
 import win32con
 import pygetwindow as gw
 from styles import shiny_style
-import pywinauto
 
 
 class EmbeddedAppFrame(tk.Frame):
@@ -46,7 +45,7 @@ class EmbeddedAppFrame(tk.Frame):
             self.right_frame, text="Launch App", command=self.launch_app, style='standard.TButton')
         self.launch_button.grid(row=3, column=2, sticky="")
 
-        # Frame for embedded app
+        # Embedded Frame
         self.embed_frame = tk.Frame(self, width=1280, height=960)
         self.embed_frame.configure(bg="#2a2b2a")
         self.embed_frame.grid(column=1)
@@ -58,6 +57,7 @@ class EmbeddedAppFrame(tk.Frame):
             self.right_frame, text="Unembed App", command=self.unembed_app, style='standard.TButton')
         self.unembed_button.grid(row=4, column=2)
         self.unembed_button.config(state="disabled")
+
 
 
 
