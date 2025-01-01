@@ -32,7 +32,6 @@ class ShinyHuntApp:
             seconds -= 1
 
     def mewtwo_with_pause(self):
-
         self.countdown(3)
         self.attempt_encounter()
         time.sleep(0.1)
@@ -90,8 +89,9 @@ class ShinyHuntApp:
             # Needed to catch image not found exception
             pyautogui.useImageNotFoundException()
 
-            reference_image = os.path.abspath('./shiny_mewtwo_reference_img.png')
-            base_image = os.path.abspath('./mewtwo.png')
+            reference_image = os.path.abspath('./shiny_mewtwo_ref.png')
+            self.screenshot_app_and_save('current_screenshot.png')
+            base_image = 'current_screenshot.png'
 
             if self.is_shiny_found(reference_image, base_image):
                 print('Shiny Found!')
@@ -101,22 +101,6 @@ class ShinyHuntApp:
                 print('No Shiny Found!')
                 self.screenshot_app_and_save('emulator_screenshot.png')
                 self.restart()
-
-            # try:
-            #     regular_mewtwo_locatation_attempt = pyautogui.locateOnScreen(base_image)
-            #     # green_color_locatation_attempt = pyautogui.locateOnScreen(reference_image)
-
-            #     print(" Mewtwo Pic Attempt",
-            #           regular_mewtwo_locatation_attempt)
-            #     print('No Shiny Found!')
-            #     self.screenshot_app_and_save('emulator_screenshot.png')
-
-            #     self.restart()
-
-            # except pyautogui.ImageNotFoundException:
-            #     print("Shiny Found!")
-            #     self.screenshot_app_and_save('shiny_screenshot.png')
-            #     exit()
 
     def is_shiny_found(self,reference_image_path, screenshot_path): 
         reference_image = cv2.imread(reference_image_path)
@@ -138,7 +122,8 @@ class ShinyHuntApp:
         correlation = cv2.compareHist(reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
         print(f"Correlation: {correlation}")
 
-        threshold = 0.5
+        threshold = 0.336
+
         return correlation > threshold
 
 

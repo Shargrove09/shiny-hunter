@@ -82,6 +82,11 @@ class ShinyHuntGUI:
             self.left_frame, textvariable=count, style='reset.TLabel')
         self.reset_count.grid(row=5, pady=(10, 0), )
 
+        # Console Window 
+        self.console = tk.Text(self.left_frame, height=10, width=30)
+
+
+
         ###################
         ### Right Frame ###
         ###################
