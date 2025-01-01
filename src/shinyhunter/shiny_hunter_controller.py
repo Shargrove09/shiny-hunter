@@ -97,7 +97,7 @@ class ShinyHunterController:
             # Needed to catch image not found exception
             pyautogui.useImageNotFoundException()
 
-            reference_image = os.path.abspath('./shiny_mewtwo_ref.png')
+            reference_image = os.path.abspath('./images/shiny_mewtwo_ref.png')
             self.screenshot_app_and_save('current_screenshot.png')
             base_image = 'current_screenshot.png'
 
@@ -131,8 +131,9 @@ class ShinyHunterController:
         # Compare histograms 
         correlation = cv2.compareHist(reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
         print(f"Correlation: {correlation}")
+        self.log(f"Correlation: {correlation}")
 
-        threshold = 0.336
+        threshold = 0.35
 
         return correlation > threshold
 
