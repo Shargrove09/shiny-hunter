@@ -129,20 +129,19 @@ To run this project, you will need to add the following environment variables to
 <!-- Prerequisites -->
 ### :bangbang: Prerequisites
 
-This project uses Yarn as package manager
+This project uses pip3 as package manager
 
 ```bash
- npm install --global yarn
+ python install pip3
 ```
 
 <!-- Installation -->
 ### :gear: Installation
 
-Install my-project with npm
+Install dependencies with pip3
 
 ```bash
-  yarn install my-project
-  cd my-project
+  pip3 install -r requirements.txt
 ```
 
 
@@ -158,21 +157,16 @@ Clone the project
 Go to the project directory
 
 ```bash
-  cd my-project
+  cd src/shiny-hunter
 ```
 
 Install dependencies
 
 ```bash
   Install requirements (TBD) 
-  Run the main file 
+  Run the main file (python main.py)
 ```
 
-Start the server
-
-```bash
-  yarn start
-```
 
 
 <!-- Usage -->
@@ -197,8 +191,8 @@ Disclaimer - The user needs to provide the game application/emulator.
 <!-- Contributing -->
 ## :wave: Contributing
 
-<a href="https://github.com/Louis3797/awesome-readme-template/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Louis3797/awesome-readme-template" />
+<a href="https://github.com/Shargrove09/shiny-hunter/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Shargrove09/shiny-hunter" />
 </a>
 
 
