@@ -20,8 +20,8 @@ class ShinyHunterController:
 
         self.emulator_x = 0
         self.emulator_y = 0
-        self.emulator_width = 2560  # TODO: Make this a setting
-        self.emulator_height = 1440
+        self.emulator_width = 1290  # TODO: Make this a setting
+        self.emulator_height = 900
 
     def set_running_status(self, status: bool):
         self.running = status
@@ -97,7 +97,7 @@ class ShinyHunterController:
             # Needed to catch image not found exception
             pyautogui.useImageNotFoundException()
 
-            reference_image = os.path.abspath('./images/shiny_mewtwo_ref.png')
+            reference_image = os.path.abspath('./images/shiny_mewtwo_ref_in_cropped.png')
             self.screenshot_app_and_save('current_screenshot.png')
             base_image = 'current_screenshot.png'
 
@@ -133,9 +133,14 @@ class ShinyHunterController:
         print(f"Correlation: {correlation}")
         self.log(f"Correlation: {correlation}")
 
-        threshold = 0.35
+        threshold = 0.04577894361318297 # Epilogue regular mewtwo 
+        # threshold = 0.9788061233251896 # mGba Regular mewtwo 
 
-        return correlation > threshold
+        shiny = abs(threshold - correlation) > 0.0001
+
+        # TODO: get clearer comparison images to test this
+        # return correlation > threshold
+        return shiny
 
 
     def get_correlation(self, reference_image_path, screenshot_path):
@@ -168,7 +173,7 @@ class ShinyHunterController:
 
     def screenshot_app_and_save(self, name: str):
         screenshot = pyautogui.screenshot(
-            region=(self.emulator_x, self.emulator_y, self.emulator_width, self.emulator_height))
+            region=(1180, 132, self.emulator_width, self.emulator_height))
         screenshot.save(name)
 
     def increment_count(self):
