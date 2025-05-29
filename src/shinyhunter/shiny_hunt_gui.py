@@ -7,7 +7,7 @@ from styles import shiny_style
 
 
 class ShinyHuntGUI:
-    def __init__(self, root, input_thread, count, handle_pause, handle_stop):
+    def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop):
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
@@ -36,12 +36,12 @@ class ShinyHuntGUI:
         self.stopped = False
 
         self.input_thread = input_thread
+        self.handle_start = handle_start
         self.handle_pause = handle_pause
         self.handle_stop = handle_stop
 
         # Root Config
         self.root = root
-        # root.config(bg="#3EB489")
 
         # Left Frame Initialization
         self.left_frame = ttk.Frame(
@@ -57,6 +57,10 @@ class ShinyHuntGUI:
         self.status_label = ttk.Label(
             root, text="Press 'Start Hunt' to begin the shiny hunt.", style='status.TLabel')
         self.status_label.grid(row=3, column=1,)
+
+         # Log Text Widget
+        self.log_text = tk.Text(root, height=10, width=50, state='disabled')
+        self.log_text.grid(row=4, column=1, padx=20, pady=20, sticky="nsew")
 
         ##################
         ### LEFT Frame ###
@@ -81,6 +85,11 @@ class ShinyHuntGUI:
             self.left_frame, textvariable=count, style='reset.TLabel')
         self.reset_count.grid(row=5, pady=(10, 0), )
 
+        # Console Window 
+        self.console = tk.Text(self.left_frame, height=10, width=30)
+
+
+
         ###################
         ### Right Frame ###
         ###################
@@ -95,6 +104,7 @@ class ShinyHuntGUI:
         # Target Image - TODO: Add Target Image + Logic
         # self.target_image = tk.Label(self.right_frame)
 
+
     def display_selected_image(self, file_path):
         image = Image.open(file_path)
         image = image.resize((300, 300))
@@ -103,6 +113,13 @@ class ShinyHuntGUI:
         self.target_image.config(image=photo)
         self.target_image.image = photo
         self.target_image.grid(row=6, column=2)
+
+    
+    def log_message(self, message):
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, message + '\n')
+        self.log_text.config(state='disabled')
+        self.log_text.see(tk.END)
 
     def open_file_dialog(self):
         file_path = filedialog.askopenfilename(
@@ -114,16 +131,9 @@ class ShinyHuntGUI:
         self.status_label.config(text="Mewtwo Hunt in progress...")
         self.start_button.config(state="disabled")
 
+        # Calls start_hunt from shiny_hunt_app
+        self.handle_start()
         self.input_thread.start()
-
-    # We should never enter here // we shouldnt need too
-    def shiny_hunt_thread(self):
-        # Call mewtwo function here
-        self.mewtwo_function()
-
-        # Update GUI after completion
-        self.status_label.config(text="Mewtwo Hunt completed!")
-        self.start_button.config(state="normal")
 
     def update_count(self):
         self.count.set(self.count.get())
