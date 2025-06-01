@@ -23,6 +23,9 @@ class ShinyHunterController:
         self.emulator_width = 1290  # TODO: Make this a setting
         self.emulator_height = 900
 
+        # TODO: Make this a setting 
+        pydirectinput.FAILSAFE = False # Disable fail safe if using computer still
+
     def set_running_status(self, status: bool):
         self.running = status
 
@@ -133,8 +136,9 @@ class ShinyHunterController:
         print(f"Correlation: {correlation}")
         self.log(f"Correlation: {correlation}")
 
-        threshold = 0.04577894361318297 # Epilogue regular mewtwo 
-        # threshold = 0.9788061233251896 # mGba Regular mewtwo 
+        # threshold = 0.04577894361318297 # Epilogue regular mewtwo on laptop
+        # threshold = 0.9788061233251896 # mGba Regular mewtwo on laptop
+        threshold = 0.11743583737659061 # Epilogue regular mewtwo on desktop fullscreen
 
         shiny = abs(threshold - correlation) > 0.0001
 
