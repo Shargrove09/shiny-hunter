@@ -4,10 +4,14 @@ from threading import Thread
 from PIL import Image, ImageTk
 import sv_ttk
 from styles import shiny_style
+from screenshot_manager import ScreenshotManager
+from input_handler import InputHandler
 
 
 class ShinyHuntGUI:
     def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop):
+        self.input_handler = InputHandler()
+
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
@@ -40,8 +44,13 @@ class ShinyHuntGUI:
         self.handle_pause = handle_pause
         self.handle_stop = handle_stop
 
+
+
         # Root Config
         self.root = root
+
+        # Initialize Screenshot Manager
+        self.screenshot_manager = ScreenshotManager()
 
         # Left Frame Initialization
         self.left_frame = ttk.Frame(
@@ -89,6 +98,21 @@ class ShinyHuntGUI:
         self.console = tk.Text(self.left_frame, height=10, width=30)
 
 
+        screenshot_button = ttk.Button(
+            self.right_frame, 
+            text="Take Screenshot", 
+            command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png.png"),
+            style='standard.TButton'
+        )
+        screenshot_button.grid(row=4, padx=2)
+
+        restart_button = ttk.Button(
+            self.right_frame,
+            text="Manual Reset",
+            command=lambda: self.input_handler.restart_sequence(),
+            style='standard.TButton'
+        )
+        restart_button.grid(row=5, padx=2)
 
         ###################
         ### Right Frame ###
@@ -147,6 +171,7 @@ class ShinyHuntGUI:
         else:
             self.status_label.config(text="Mewtwo Hunt in progress...")
         self.handle_pause()
+
 
     def stop_hunt(self):
         print('Stopping Hunt')
