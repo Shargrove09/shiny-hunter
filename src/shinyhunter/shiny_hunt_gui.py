@@ -9,8 +9,11 @@ from input_handler import InputHandler
 
 
 class ShinyHuntGUI:
-    def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop):
+    def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop, controller=None):
         self.input_handler = InputHandler()
+
+        if controller: 
+            self.log_message = controller
 
         ### Styling ###
         sv_ttk.set_theme("dark")
@@ -94,9 +97,6 @@ class ShinyHuntGUI:
             self.left_frame, textvariable=count, style='reset.TLabel')
         self.reset_count.grid(row=5, pady=(10, 0), )
 
-        # Console Window 
-        self.console = tk.Text(self.left_frame, height=10, width=30)
-
 
         screenshot_button = ttk.Button(
             self.right_frame, 
@@ -117,17 +117,6 @@ class ShinyHuntGUI:
         ###################
         ### Right Frame ###
         ###################
-
-        # Select Target Image Button
-        # self.select_img = ttk.Button(
-        #     self.right_frame, text="Select Image: ", command=self.open_file_dialog, style='standard.TButton')
-        # TODO: Feature: Allow user to select own target image
-        # self.select_img.config(state='disabled')
-        # self.select_img.grid(row=2, column=2)
-
-        # Target Image - TODO: Add Target Image + Logic
-        # self.target_image = tk.Label(self.right_frame)
-
 
     def display_selected_image(self, file_path):
         image = Image.open(file_path)

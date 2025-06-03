@@ -55,20 +55,24 @@ if __name__ == '__main__':
     root.geometry("1920x1080")
     
     count = tk.IntVar(value=0)
-    
+
+        
     # Initialize controller
     shiny_hunter = ShinyHunterController()
     
     # Create input thread
     input_thread = threading.Thread(target=shiny_hunter.attempt_encounter)
+
     
     # Initialize GUI
     app = ShinyHuntGUI(
         root, input_thread, count, 
         shiny_hunter.start_hunt,
         shiny_hunter.pause_hunt, 
-        shiny_hunter.stop_hunt
+        shiny_hunter.stop_hunt, 
     )
+
+    shiny_hunter.log_function = app.log_message
     
     # TODO: CHECK if we are Set the log function for the controller
     # shiny_hunter.set_log_function(app.log_message)

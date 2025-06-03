@@ -22,7 +22,7 @@ class ShinyHunterConfig:
     
     # Shiny detection
     # correlation_threshold: float = 0.11743583737659061
-    correlation_threshold: float = 0.17200420695376417
+    correlation_threshold: float = 0.4468404494968037
     correlation_tolerance: float = 0.0001
     
     # File paths
