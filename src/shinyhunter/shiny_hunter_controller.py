@@ -7,6 +7,7 @@ from config import ConfigManager
 from image_processor import ImageProcessor
 from input_handler import InputHandler
 from screenshot_manager import ScreenshotManager
+import tkinter as tk
 
 
 class ShinyHunterController:
@@ -16,7 +17,7 @@ class ShinyHunterController:
         self.running = False
         self.paused = False
         self.thread = None
-        self.count = 0
+        self.reset_count = tk.IntVar(value=0)
         self.log_function = log_function
         
         # Initialize components
@@ -87,9 +88,14 @@ class ShinyHunterController:
     def set_running_status(self, status: bool):
         self.running = status
 
-    def increment_count(self):
-        self.count += 1
+    @property
+    def count(self): 
+        return self.reset_count.get()
     
+    def increment_count(self):
+        current = self.reset_count.get()
+        self.reset_count.set(current + 1)
+
     def start_hunt(self):
         """Start the shiny hunt."""
         # TODO: Make this a setting
