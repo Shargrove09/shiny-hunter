@@ -79,7 +79,7 @@ class ShinyHuntGUI:
         ##################
         # Start Button
         self.start_button = ttk.Button(
-            self.left_frame, text="Start Hunt", command=self.start_hunt, style='start.TButton')
+            self.left_frame, text="Start Hunt", command=self.on_start_hunt, style='start.TButton')
         self.start_button.grid(row=2, column=0, pady=10, )
 
         # Pause Button
@@ -101,7 +101,7 @@ class ShinyHuntGUI:
         screenshot_button = ttk.Button(
             self.right_frame, 
             text="Take Screenshot", 
-            command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png.png"),
+            command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png"),
             style='standard.TButton'
         )
         screenshot_button.grid(row=4, padx=2)
@@ -117,30 +117,18 @@ class ShinyHuntGUI:
         ###################
         ### Right Frame ###
         ###################
-
-    def display_selected_image(self, file_path):
-        image = Image.open(file_path)
-        image = image.resize((300, 300))
-        photo = ImageTk.PhotoImage(image)
-
-        self.target_image.config(image=photo)
-        self.target_image.image = photo
-        self.target_image.grid(row=6, column=2)
-
     
+
+    ### Methods for GUI Interaction ###
     def log_message(self, message):
         self.log_text.config(state='normal')
         self.log_text.insert(tk.END, message + '\n')
         self.log_text.config(state='disabled')
         self.log_text.see(tk.END)
 
-    def open_file_dialog(self):
-        file_path = filedialog.askopenfilename(
-            filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif")])
-        if file_path:
-            self.display_selected_image(file_path)
 
-    def start_hunt(self):
+
+    def on_start_hunt(self):
         self.status_label.config(text="Mewtwo Hunt in progress...")
         self.start_button.config(state="disabled")
 

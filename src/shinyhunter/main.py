@@ -15,8 +15,7 @@ emulator_x = 0
 emulator_y = 0
 emulator_width = 2560  # TODO: Make this a setting
 emulator_height = 1440
-pyautogui.PAUSE = 2
-pydirectinput.PAUSE = 0.8
+
 
 # Reset Count
 count = 0

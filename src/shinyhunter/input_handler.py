@@ -24,10 +24,14 @@ class InputHandler:
         
         for attempt in range(max_retries):
             # Execute encounter
+            time.sleep(0.25)
+            print("PRESSING X")
             pydirectinput.press('x')
-            time.sleep(1)  # Wait for first press to register
+            time.sleep(2)  # Wait for first press to registerx
+            print("PRESSING X AGAIN")
             pydirectinput.press('x')
             time.sleep(self.config.encounter_delay)
+
             
             # Verify we reached encounter screen
             screenshot_path = screenshot_manager.take_screenshot('verification_screenshot.png')
@@ -35,7 +39,7 @@ class InputHandler:
                 return True
                 
             print(f"Encounter sequence verification failed, attempt {attempt + 1}/{max_retries}")
-            time.sleep(2)  # Wait before retry
+            time.sleep(1)  # Wait before retry
             
         return False
     
@@ -55,7 +59,6 @@ class InputHandler:
         for key in keys:
             pydirectinput.keyUp(key)
         
-        time.sleep(self.config.restart_delay)
         
         # Navigate through start menu
         self._navigate_start_menu()

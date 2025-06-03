@@ -10,10 +10,10 @@ class ShinyHunterConfig:
     emulator_height: int = 900
     
     # Input delays
-    pyautogui_pause: float = 0.8
-    pydirectinput_pause: float = 1
+    pyautogui_pause: float = 2.0
+    pydirectinput_pause: float = 0.7
     encounter_delay: float = 5.0
-    restart_delay: float = 7.0
+    restart_delay: float = 4.0
     
     # New verification settings
     max_encounter_retries: int = 3
@@ -21,8 +21,9 @@ class ShinyHunterConfig:
     verification_delay: float = 1.0
     
     # Shiny detection
-    # correlation_threshold: float = 0.11743583737659061
-    correlation_threshold: float = 0.4468404494968037
+    # correlation_threshold: float = 0.11743583737659061 # Frieren #1
+    correlation_threshold: float = 0.2228965728096372
+    # correlation_threshold: float = 0.4468404494968037
     correlation_tolerance: float = 0.0001
     
     # File paths

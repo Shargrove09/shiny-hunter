@@ -2,4 +2,11 @@
 __pycache__/embedded_app.cpython-312.pyc
 __pycache__/styles.cpython-312.pyc
 __pycache__/shiny_hunt_gui.cpython-312.pyc
+src/shinyhunter/__pycache__/
+
+screenshots/shiny_found*
+*.pyc
+*.pyo
+*.pyd
 emulator_screenshot.png
+encounter_screen_template.png 

@@ -15,6 +15,7 @@ class ImageProcessor:
         # Define template image that should appear on encounter screen
         encounter_template_path = './images/encounter_screen_template.png'
         if not os.path.exists(encounter_template_path):
+            #TODO: Log warning about missing template 
             return True  # Skip validation if template doesn't exist
             
         screenshot = cv2.imread(screenshot_path)
