@@ -22,15 +22,23 @@ class EmbeddedAppFrame(tk.Frame):
         self.create_widgets()
         self.dropdown_var = tk.StringVar()
 
+
+        self.dropdown_label = ttk.Label(
+        self.right_frame, text="Select the Game Window", style='select.TLabel')
+        self.dropdown_label.grid(column=0, row=0)
+
+        # Dropdown Menu
         self.dropdown_var = tk.StringVar(self)
+
         self.dropdown = ttk.Combobox(self.right_frame, textvariable=self.dropdown_var)
-        self.dropdown.grid(row=0, column=0)
+        self.dropdown.option_add('*TCombobox*Listbox.font', ('Arial', 10))
+        
+
+        self.dropdown.grid(row=1, column=0)
         self.populate_dropdown()
 
         self.refresh_button = ttk.Button(self.right_frame, text="Refresh", command=self.populate_dropdown)
-        self.refresh_button.grid(row=1, column=0)
-
-        # self.create_dropdown()
+        self.refresh_button.grid(row=2, column=0, columnspan=2, pady=(10, 10))
 
         self.app_handle = None
 
@@ -43,7 +51,7 @@ class EmbeddedAppFrame(tk.Frame):
         # Button to launch embedded app
         self.launch_button = ttk.Button(
             self.right_frame, text="Launch App", command=self.launch_app, style='standard.TButton')
-        self.launch_button.grid(row=3, column=2, sticky="")
+        self.launch_button.grid(row=3, column=0, columnspan=2,pady=(10, 0))
 
         # Embedded Frame
         self.embed_frame = tk.Frame(self, width=1280, height=960)
@@ -55,7 +63,7 @@ class EmbeddedAppFrame(tk.Frame):
         # Button to Unembedd App
         self.unembed_button = ttk.Button(
             self.right_frame, text="Unembed App", command=self.unembed_app, style='standard.TButton')
-        self.unembed_button.grid(row=4, column=2)
+        self.unembed_button.grid(row=4, column=0, columnspan=2,pady=(10, 10))
         self.unembed_button.config(state="disabled")
 
 
@@ -118,23 +126,3 @@ class EmbeddedAppFrame(tk.Frame):
     def get_window_titles(self):
         window_titles = gw.getAllTitles()
         return window_titles
-
-    def on_dropdown_change(self, event):
-        selected_window = self.dropdown_var.get()
-        print(f"Selected Window: {selected_window}")
-
-    def create_dropdown(self):
-        self.dropdown_label = ttk.Label(
-            self.right_frame, text="Select the Game Window", style='select.TLabel')
-        self.dropdown_label.grid(column=2, row=1)
-
-        # Dropdown Menu
-        self.window_dropdown = ttk.Combobox(
-            self.right_frame, textvariable=self.dropdown_var, values=self.get_window_titles(), width=16, font=('calibri', 8, 'bold'), style='dropdown.TCombobox')
-        self.window_dropdown.grid(column=2, row=2, pady=10)
-
-        self.window_dropdown.set("Select Window")
-
-        # Bind event handler to dropdown change event
-        self.window_dropdown.bind(
-            "<<ComboboxSelected>>", self.on_dropdown_change)

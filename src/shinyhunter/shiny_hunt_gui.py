@@ -18,7 +18,6 @@ class ShinyHuntGUI:
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
-
         style.configure('start.TButton', font=(
             'calibri', 12, 'bold', 'underline'), foreground='green')
         style.configure('standard.TButton', font=(
@@ -34,7 +33,7 @@ class ShinyHuntGUI:
         ### Scaling ###
         root.grid_columnconfigure(0, weight=1)
         root.grid_columnconfigure(1, weight=3)
-        root.grid_columnconfigure(2, weight=1)
+        root.grid_columnconfigure(2, weight=0)
         # root.grid_rowconfigure(0, weight=1)
         # root.grid_rowconfigure(1, weight=1)
 
@@ -62,8 +61,11 @@ class ShinyHuntGUI:
 
         # Right Frame
         self.right_frame = ttk.Frame(
-            root, width=200, height=400, style='side.TFrame')
-        self.right_frame.grid(row=0, column=2, padx=20, pady=40, sticky="ns")
+            root, width=200, height=400, style='side.TFrame',)
+        self.right_frame.grid(row=0, column=2,ipadx=10, padx=40, pady=40, sticky="nsew")
+        self.right_frame.grid_columnconfigure(0, weight=1)
+
+
 
         # Status Label
         self.status_label = ttk.Label(
@@ -104,7 +106,7 @@ class ShinyHuntGUI:
             command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png"),
             style='standard.TButton'
         )
-        screenshot_button.grid(row=4, padx=2)
+        screenshot_button.grid(row=7, column=0)
 
         restart_button = ttk.Button(
             self.right_frame,
@@ -112,7 +114,7 @@ class ShinyHuntGUI:
             command=lambda: self.input_handler.restart_sequence(),
             style='standard.TButton'
         )
-        restart_button.grid(row=5, padx=2)
+        restart_button.grid(row=6, padx=2)
 
         ###################
         ### Right Frame ###

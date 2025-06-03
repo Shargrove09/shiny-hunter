@@ -17,8 +17,6 @@ emulator_width = 2560  # TODO: Make this a setting
 emulator_height = 1440
 
 
-# Reset Count
-count = 0
 paused = False
 stopped = False
 pause_lock = threading.Lock()
@@ -53,7 +51,6 @@ if __name__ == '__main__':
     root.title("Shiny Hunt v0.2-alpha")
     root.geometry("1920x1080")
     
-    count = tk.IntVar(value=0)
 
         
     # Initialize controller
@@ -72,9 +69,6 @@ if __name__ == '__main__':
     )
 
     shiny_hunter.log_function = app.log_message
-    
-    # TODO: CHECK if we are Set the log function for the controller
-    # shiny_hunter.set_log_function(app.log_message)
     
     # Initialize embedded app frame
     pyApp = Application()
