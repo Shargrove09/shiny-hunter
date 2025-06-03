@@ -21,9 +21,8 @@ class ShinyHunterConfig:
     verification_delay: float = 1.0
     
     # Shiny detection
-    # correlation_threshold: float = 0.11743583737659061 # Frieren #1
-    correlation_threshold: float = 0.2228965728096372
-    # correlation_threshold: float = 0.4468404494968037
+    # correlation_threshold: float = 0.2228965728096372
+    correlation_threshold: float = 0.4468404494968037
     correlation_tolerance: float = 0.0001
     
     # File paths
