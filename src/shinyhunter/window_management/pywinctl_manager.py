@@ -47,7 +47,8 @@ class PyWinCtlManager(WindowManager):
         
         try:
             pywinctl_windows = pywinctl.getAllWindows()
-            
+            print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
+            print(f"Sample window titles: {[w.title for w in pywinctl_windows[:5]]}")
             for window in pywinctl_windows:
                 try:
                     # Filter out windows without titles or that are not visible
