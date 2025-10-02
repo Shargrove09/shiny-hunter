@@ -107,10 +107,23 @@ pip install -r requirements.txt
 #### Linux
 
 ```bash
-# May require additional permissions
+# Install dependencies
 pip install -r requirements.txt
-# Ensure user is in appropriate groups for input simulation
+
+# Grant X11 access (required for GUI and screenshots)
+xhost +local:
+
+# Run the application
+python src/shinyhunter/main.py
 ```
+
+**Important:** Linux users may encounter X11 display authorization errors. See **[LINUX_SETUP.md](LINUX_SETUP.md)** for detailed troubleshooting and setup instructions.
+
+**Common Linux setup:**
+
+- System packages: `python3-tk`, `python3-xlib`, `scrot`
+- User may need to be in the `input` group for keyboard/mouse simulation
+- X11 authorization required (use `xhost +local:` before running)
 
 ## Adaptive UI Modes
 
@@ -219,22 +232,37 @@ Platform Support:
 
 ✅ **Solved**: All dependencies now install conditionally
 
+### X11 Display Authorization Error (Linux)
+
+**Error:** `Xlib.error.DisplayConnectionError: Can't connect to display ":0"`
+
+**Solution:** Grant X11 access before running:
+
+```bash
+xhost +local:
+python src/shinyhunter/main.py
+```
+
+See **[LINUX_SETUP.md](LINUX_SETUP.md)** for comprehensive Linux troubleshooting.
+
 ### Window Management Not Working
 
 ✅ **Solved**: Automatic fallback to compatible managers
 
 ### Input Not Responding
 
-1. Check platform permissions (accessibility on macOS)
+1. Check platform permissions (accessibility on macOS, X11 on Linux)
 2. Verify target application has focus
 3. Check console for error messages
 4. Ensure running with appropriate privileges
+5. **Linux**: Run `xhost +local:` before starting the app
 
 ### Performance Issues
 
 1. Reduce screenshot frequency in config
 2. Close unnecessary applications
 3. Check system resource usage
+4. **Linux**: Use X11 session instead of Wayland for better performance
 
 ## Developer Notes
 

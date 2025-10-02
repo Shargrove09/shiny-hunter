@@ -1,6 +1,20 @@
-import pyautogui
 import tkinter as tk
 import threading
+import os
+import sys
+
+# Try to import pyautogui, but handle X11 display errors gracefully on Linux
+PYAUTOGUI_AVAILABLE = True
+try:
+    import pyautogui
+except Exception as e:
+    PYAUTOGUI_AVAILABLE = False
+    if sys.platform.startswith('linux'):
+        print(f"Warning: pyautogui not available: {e}")
+        print("This is common on Linux systems. The app will use pynput for input handling.")
+        print("For screenshots, please fix X11 authorization (run 'xhost +local:') or install required dependencies. See README.md for details.")
+    else:
+        print(f"Warning: Could not import pyautogui: {e}")
 
 # Conditional import for Windows-specific functionality
 try:

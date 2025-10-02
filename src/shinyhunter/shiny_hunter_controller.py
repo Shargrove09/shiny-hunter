@@ -1,4 +1,3 @@
-import pyautogui
 import time
 import sys
 import os
@@ -7,6 +6,8 @@ from image_processor import ImageProcessor
 from input_handler import InputHandler
 from screenshot_manager import ScreenshotManager
 import tkinter as tk
+
+# pyautogui is not needed in this module - removed unused import
 
 
 class ShinyHunterController:

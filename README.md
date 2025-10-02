@@ -1,6 +1,6 @@
 <!--
-Hey, thanks for using the awesome-readme-template template.  
-If you have any enhancements, then fork this project and create a pull request 
+Hey, thanks for using the awesome-readme-template template.
+If you have any enhancements, then fork this project and create a pull request
 or just open an issue with the label "enhancement".
 
 Don't forget to give this project a star for additional support ;)
@@ -25,7 +25,6 @@ Removed sections:
     Do you like slight variations of your favorite pokemon but don't have the time to get it?  
   </p>
 
-  
 <!-- Badges -->
 <!--
 <p>
@@ -49,7 +48,7 @@ Removed sections:
   </a>
 </p>
 --->
-   
+
 <h4>
     <a href="">View Demo</a>
   <span> · </span>
@@ -64,36 +63,36 @@ Removed sections:
 <br />
 
 <!-- Table of Contents -->
+
 # :notebook_with_decorative_cover: Table of Contents
 
 - [About the Project](#star2-about-the-project)
-  * [Tech Stack](#space_invader-tech-stack)
-  * [Features](#dart-features)
-  * [Environment Variables](#key-environment-variables)
+  - [Tech Stack](#space_invader-tech-stack)
+  - [Features](#dart-features)
+  - [Environment Variables](#key-environment-variables)
 - [Getting Started](#toolbox-getting-started)
-  * [Prerequisites](#bangbang-prerequisites)
-  * [Installation](#gear-installation)
-  * [Run Locally](#running-run-locally)
+  - [Prerequisites](#bangbang-prerequisites)
+  - [Installation](#gear-installation)
+  - [Run Locally](#running-run-locally)
 - [Usage](#eyes-usage)
 - [Roadmap](#compass-roadmap)
 - [Contributing](#wave-contributing)
-  * [Code of Conduct](#scroll-code-of-conduct)
+  - [Code of Conduct](#scroll-code-of-conduct)
 - [License](#warning-license)
 - [Contact](#handshake-contact)
 - [Acknowledgements](#gem-acknowledgements)
-  
 
 <!-- About the Project -->
+
 ## :star2: About the Project
+
 A Python-based project utilizing tools such as Tkinter and PyAutoGUI that allows the user to embed a running Pokemon game window into the application that then inputs a series of keystroke combinations to automatically encounter desired Pokemon and reset via until it runs into a shiny version of said Pokemon. (See: Shiny Hunting to learn more about shiny hunting) The keystrokes are directly input into the window so the application is able to run minimized and/or in the background to allow use of the computer while the task is completed.
 Currently, as a proof of concept, the application is built only to look for shiny mewtwo colors.
 
-
-
 ![shiny-hunter-screenshot](https://github.com/Shargrove09/shiny-hunter/assets/8881163/22561cec-7960-44f3-afee-8004d9583a71)
 
-
 <!-- TechStack -->
+
 ### :space_invader: Tech Stack
 
 <details>
@@ -105,16 +104,16 @@ Currently, as a proof of concept, the application is built only to look for shin
   </ul>
 </details>
 
-
 <!-- Features -->
+
 ### :dart: Features
-- Embed game application into shiny hunter application 
-- Direct input into the game window 
-- Image Detection 
 
-
+- Embed game application into shiny hunter application
+- Direct input into the game window
+- Image Detection
 
 <!-- Env Variables -->
+
 ### :key: Environment Variables
 
 To run this project, you will need to add the following environment variables to your .env file
@@ -124,9 +123,11 @@ To run this project, you will need to add the following environment variables to
 `ANOTHER_API_KEY`
 
 <!-- Getting Started -->
-## 	:toolbox: Getting Started
+
+## :toolbox: Getting Started
 
 <!-- Prerequisites -->
+
 ### :bangbang: Prerequisites
 
 This project uses pip3 as package manager
@@ -136,6 +137,7 @@ This project uses pip3 as package manager
 ```
 
 <!-- Installation -->
+
 ### :gear: Installation
 
 Install dependencies with pip3
@@ -144,8 +146,22 @@ Install dependencies with pip3
   pip3 install -r requirements.txt
 ```
 
+#### 🐧 Linux Users
+
+If you're running on Linux (especially Ubuntu), you may encounter X11 display authorization errors. Please see **[LINUX_SETUP.md](LINUX_SETUP.md)** for detailed setup instructions and troubleshooting.
+
+**Quick fix for Linux:**
+
+```bash
+# Grant X11 access before running
+xhost +local:
+
+# Then run the application
+python3 src/shinyhunter/main.py
+```
 
 <!-- Run Locally -->
+
 ### :running: Run Locally
 
 Clone the project
@@ -163,47 +179,47 @@ Go to the project directory
 Install dependencies
 
 ```bash
-  Install requirements (TBD) 
+  Install requirements (TBD)
   Run the main file (python main.py)
 ```
 
-
-
 <!-- Usage -->
+
 ## :eyes: Usage
 
 Use this space to tell a little more about your project and how it can be used. Show additional screenshots, code samples, demos or link to other resources.
-Disclaimer - The user needs to provide the game application/emulator. 
+Disclaimer - The user needs to provide the game application/emulator.
+
 1.  Launch the game application
-2.  Launch the Shiny Hunter application 
+2.  Launch the Shiny Hunter application
 3.  Select the game application window from the drop-down menu and select "Launch Application."
 4.  Start hunting (assuming the player is in front of the static encounter)
 
-
 <!-- Roadmap -->
+
 ## :compass: Roadmap
 
-* [ ] Customizable Input Buttons 
-* [ ] Add support for custom hunts 
-	- User target color 
-	- User input target sequence
+- [ ] Customizable Input Buttons
+- [ ] Add support for custom hunts
+  - User target color
+  - User input target sequence
 
 <!-- Contributing -->
+
 ## :wave: Contributing
 
 <a href="https://github.com/Shargrove09/shiny-hunter/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Shargrove09/shiny-hunter" />
 </a>
 
-
-
 <!-- License -->
+
 ## :warning: License
 
-Distributed under the no License.  See LICENSE.txt for more information.
-
+Distributed under the no License. See LICENSE.txt for more information.
 
 <!-- Contact -->
+
 ## :handshake: Contact
 
 Shargrove - scott7c1@gmail.com
@@ -211,9 +227,7 @@ Shargrove - scott7c1@gmail.com
 Project Link: [https://github.com/Shargrove09/shiny-hunter](https://github.com/Shargrove09/shiny-hunter)
 
 <!-- Acknowledgments -->
+
 ## :gem: Acknowledgements
 
 Disclaimer: This project is a tool designed solely for automating the process of shiny hunting Pokémon within the bounds of legality. It does not provide any ROMs, copyrighted material, or licensed content from Nintendo or The Pokémon Company. Users are responsible for ensuring they own legal copies of any game files used with this tool and comply with all applicable laws and regulations regarding game emulation and modification.
-
-
-

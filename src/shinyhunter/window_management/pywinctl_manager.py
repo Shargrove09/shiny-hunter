@@ -21,12 +21,6 @@ except ImportError:
     WIN32_AVAILABLE = False
 
 # Fallback imports
-try:
-    import pygetwindow as gw
-    PYGETWINDOW_AVAILABLE = True
-except ImportError:
-    PYGETWINDOW_AVAILABLE = False
-except NotImplementedError:
     # pygetwindow raises NotImplementedError on unsupported platforms like Linux
     PYGETWINDOW_AVAILABLE = False
 
@@ -59,11 +53,14 @@ class PyWinCtlManager(WindowManager):
                     # Filter out windows without titles or that are not visible
                     if not window.title or not window.visible:
                         continue
+                    
+                    # Get window ID - PyWinCtl uses 'wid' for window ID
+                    wid = getattr(window, 'wid', 0)
                         
                     window_info = WindowInfo(
                         title=window.title,
                         handle=window,  # Store the PyWinCtl window object
-                        pid=getattr(window, 'pid', 0),
+                        pid=wid,
                         geometry=(window.left, window.top, window.width, window.height),
                         is_visible=window.visible,
                         is_minimized=window.isMinimized
@@ -85,10 +82,13 @@ class PyWinCtlManager(WindowManager):
             windows = pywinctl.getWindowsWithTitle(title)
             if windows:
                 window = windows[0]  # Get first match
+                # Get window ID - PyWinCtl uses 'wid' for window ID
+                wid = getattr(window, 'wid', 0)
+                    
                 return WindowInfo(
                     title=window.title,
                     handle=window,
-                    pid=getattr(window, 'pid', 0),
+                    pid=wid,
                     geometry=(window.left, window.top, window.width, window.height),
                     is_visible=window.visible,
                     is_minimized=window.isMinimized
@@ -102,10 +102,13 @@ class PyWinCtlManager(WindowManager):
         """Get window information by handle (PyWinCtl window object)."""
         try:
             if hasattr(handle, 'title'):  # It's a PyWinCtl window object
+                # Get window ID - PyWinCtl uses 'wid' for window ID
+                wid = getattr(handle, 'wid', 0)
+                    
                 return WindowInfo(
                     title=handle.title,
                     handle=handle,
-                    pid=getattr(handle, 'pid', 0),
+                    pid=wid,
                     geometry=(handle.left, handle.top, handle.width, handle.height),
                     is_visible=handle.visible,
                     is_minimized=handle.isMinimized
