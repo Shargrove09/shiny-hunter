@@ -103,14 +103,6 @@ class ShinyHunterController:
     def set_running_status(self, status: bool):
         self.running = status
 
-    @property
-    def count(self): 
-        return self.reset_count.get()
-    
-    def increment_count(self):
-        current = self.reset_count.get()
-        self.reset_count.set(current + 1)
-
     def start_hunt(self):
         """Start the shiny hunt."""
         # TODO: Make this a setting

@@ -73,7 +73,7 @@ if __name__ == '__main__':
     
     # Initialize GUI
     app = ShinyHuntGUI(
-        root, input_thread, shiny_hunter.reset_count, 
+        root, input_thread, shiny_hunter, 
         shiny_hunter.start_hunt,
         shiny_hunter.pause_hunt, 
         shiny_hunter.stop_hunt, 

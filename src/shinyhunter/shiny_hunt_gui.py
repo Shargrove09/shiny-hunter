@@ -10,12 +10,15 @@ from config import ConfigManager
 
 
 class ShinyHuntGUI:
-    def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop, controller=None):
+    def __init__(self, root, input_thread, controller, handle_start, handle_pause, handle_stop):
         self.input_handler = InputHandler()
         
-        # Store controller reference separately to avoid method name collision
+        # Store controller reference
         self.controller = controller
-
+        
+        # Create a tkinter variable for displaying the count
+        self.count_var = tk.IntVar(value=0)
+        
         ### Styling ###
         sv_ttk.set_theme("dark")
         style = ttk.Style()
@@ -38,7 +41,6 @@ class ShinyHuntGUI:
         # root.grid_rowconfigure(0, weight=1)
         # root.grid_rowconfigure(1, weight=1)
 
-        self.count = count
         self.paused = False
         self.stopped = False
 
@@ -97,7 +99,7 @@ class ShinyHuntGUI:
 
         # Reset Counter
         self.reset_count = ttk.Label(
-            self.left_frame, textvariable=count, style='reset.TLabel')
+            self.left_frame, textvariable=self.count_var, style='reset.TLabel')
         self.reset_count.grid(row=5, pady=(10, 0), )
 
         # Settings Button
@@ -145,7 +147,8 @@ class ShinyHuntGUI:
         self.input_thread.start()
 
     def update_count(self):
-        self.count.set(self.count.get())
+        if self.controller:
+            self.count_var.set(self.controller.count)
 
     def toggle_pause(self):
         # TODO: Decide where to store paused state - main or here
