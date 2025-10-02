@@ -12,9 +12,9 @@ from config import ConfigManager
 class ShinyHuntGUI:
     def __init__(self, root, input_thread, count, handle_start, handle_pause, handle_stop, controller=None):
         self.input_handler = InputHandler()
-
-        if controller: 
-            self.log_message = controller
+        
+        # Store controller reference separately to avoid method name collision
+        self.controller = controller
 
         ### Styling ###
         sv_ttk.set_theme("dark")
@@ -128,6 +128,7 @@ class ShinyHuntGUI:
 
     ### Methods for GUI Interaction ###
     def log_message(self, message):
+        # Update GUI components (the controller will handle its own logging via log_function)
         self.log_text.config(state='normal')
         self.log_text.insert(tk.END, message + '\n')
         self.log_text.config(state='disabled')
@@ -241,7 +242,6 @@ class ShinyHuntGUI:
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(20, 0))
         
-        # Save and Cancel buttons
         def save_settings():
             try:
                 # Update config values
@@ -252,16 +252,22 @@ class ShinyHuntGUI:
                 config.max_encounter_retries = int(max_retries.get())
                 config.failsafe_enabled = failsafe_var.get()
                 
+                # Persist the changes
+                config_manager.save_config()
+                
                 # Log the changes
                 if hasattr(self, 'log_message'):
                     self.log_message("Settings updated successfully!")
                 
                 settings_window.destroy()
             except ValueError as e:
-                # Show error if invalid values entered
                 error_label = ttk.Label(button_frame, text="Invalid values entered!", foreground="red")
                 error_label.pack(pady=(10, 0))
-                settings_window.after(3000, error_label.destroy)  # Remove error after 3 seconds
+                # Remove error after 3 seconds, but only if window still exists
+                def safe_destroy():
+                    if settings_window.winfo_exists():
+                        error_label.destroy()
+                settings_window.after(3000, safe_destroy)# Remove error after 3 seconds
         
         def cancel_settings():
             settings_window.destroy()

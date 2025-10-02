@@ -1,8 +1,11 @@
 Pillow==11.2.1
 pyautogui==0.9.54
-pydirectinput==1.0.4
+pynput>=1.7.0
 pygetwindow==0.0.9
-pywinauto==0.6.9
+PyWinCtl>=0.4.0
 sv_ttk==2.6.0
-pywin32==310
-opencv-python==4.11.0.86 
+opencv-python==4.11.0.86
+
+# Windows-specific dependencies
+pywinauto==0.6.9; sys_platform == "win32"
+pywin32==310; sys_platform == "win32" 

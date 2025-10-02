@@ -1,5 +1,4 @@
 import pyautogui
-import pydirectinput
 import time
 import sys
 import os
@@ -17,7 +16,7 @@ class ShinyHunterController:
         self.running = False
         self.paused = False
         self.thread = None
-        self.reset_count = tk.IntVar(value=0)
+        self._reset_count = 0  # Use a plain integer for the attempt counter
         self.log_function = log_function
         
         # Initialize components
@@ -25,6 +24,18 @@ class ShinyHunterController:
         self.image_processor = ImageProcessor()
         self.input_handler = InputHandler()
         self.screenshot_manager = ScreenshotManager()
+
+    @property
+    def count(self):
+        return self._reset_count
+
+    @count.setter
+    def count(self, value):
+        self._reset_count = int(value)
+
+    def increment_count(self):
+        self._reset_count += 1
+        return self._reset_count
     
     def log(self, message: str):
         """Log message if log function is available."""
@@ -47,8 +58,6 @@ class ShinyHunterController:
                 continue
                 
             self.log('Initializing Shiny Hunt')
-            self.increment_count()
-            self.log(f"Attempt #{self.count}")
             
             # Execute encounter with verification
             if hasattr(self.input_handler, 'encounter_sequence_with_verification'):
@@ -60,8 +69,14 @@ class ShinyHunterController:
                     self.log('Failed to reach encounter screen, restarting...')
                     self.input_handler.restart_sequence()
                     continue
+                
+                # Only increment count after successful encounter verification
+                self.increment_count()
+                self.log(f"Attempt #{self.count}")
             else:
                 # Fallback to original method
+                self.increment_count()
+                self.log(f"Attempt #{self.count}")
                 self.input_handler.encounter_sequence()
             
             # Take screenshot and check for shiny

@@ -1,21 +1,95 @@
-import pydirectinput
-import pyautogui
 import time
 from config import ConfigManager
+import platform
+
+# Cross-platform input handling
+try:
+    from pynput.keyboard import Key, Controller as KeyboardController
+    PYNPUT_AVAILABLE = True
+except ImportError:
+    PYNPUT_AVAILABLE = False
+    KeyboardController = None
+
+# Fallback imports for compatibility
+try:
+    import pyautogui
+    PYAUTOGUI_AVAILABLE = True
+except ImportError:
+    PYAUTOGUI_AVAILABLE = False
 
 class InputHandler:
     def __init__(self):
         self.config = ConfigManager().get_config()
-        pydirectinput.PAUSE = self.config.pydirectinput_pause
-        pyautogui.PAUSE = self.config.pyautogui_pause
-        pydirectinput.FAILSAFE = self.config.failsafe_enabled
+        self.platform = platform.system()
+        
+        # Initialize the appropriate input method
+        if PYNPUT_AVAILABLE:
+            self.keyboard = KeyboardController()
+            self.input_method = "pynput"
+            print("Using pynput for cross-platform input handling")
+        elif PYAUTOGUI_AVAILABLE:
+            self.input_method = "pyautogui"
+            pyautogui.PAUSE = self.config.pyautogui_pause
+            pyautogui.FAILSAFE = self.config.failsafe_enabled
+            print("Using pyautogui as fallback input method")
+        else:
+            raise ImportError("No suitable input library available. Please install pynput or pyautogui")
 
-        print("InputHandler initialized with the following configuration:")
+        print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
+    
+    def _get_key_mapping(self):
+        """Get platform-specific key mappings."""
+        if self.input_method == "pynput":
+            return {
+                'x': 'x',
+                'z': 'z', 
+                'enter': Key.enter,
+                'backspace': Key.backspace
+            }
+        else:  # pyautogui
+            return {
+                'x': 'x',
+                'z': 'z',
+                'enter': 'enter',
+                'backspace': 'backspace'
+            }
+    
+    def _press_key(self, key):
+        """Cross-platform key press."""
+        key_map = self._get_key_mapping()
+        mapped_key = key_map.get(key, key)
+        
+        if self.input_method == "pynput":
+            self.keyboard.press(mapped_key)
+            self.keyboard.release(mapped_key)
+            time.sleep(0.1)  # Small delay between key presses
+        else:  # pyautogui fallback
+            pyautogui.press(mapped_key)
+    
+    def _key_down(self, key):
+        """Cross-platform key down."""
+        key_map = self._get_key_mapping()
+        mapped_key = key_map.get(key, key)
+        
+        if self.input_method == "pynput":
+            self.keyboard.press(mapped_key)
+        else:  # pyautogui fallback
+            pyautogui.keyDown(mapped_key)
+    
+    def _key_up(self, key):
+        """Cross-platform key up."""
+        key_map = self._get_key_mapping()
+        mapped_key = key_map.get(key, key)
+        
+        if self.input_method == "pynput":
+            self.keyboard.release(mapped_key)
+        else:  # pyautogui fallback
+            pyautogui.keyUp(mapped_key)
     
     def encounter_sequence(self):
         """Execute the encounter button sequence."""
-        pydirectinput.press('x')
-        pydirectinput.press('x')
+        self._press_key('x')
+        self._press_key('x')
         time.sleep(self.config.encounter_delay)
 
     def encounter_sequence_with_verification(self, screenshot_manager, image_processor):
@@ -26,10 +100,10 @@ class InputHandler:
             # Execute encounter
             time.sleep(0.25)
             print("PRESSING X")
-            pydirectinput.press('x')
-            time.sleep(2)  # Wait for first press to registerx
+            self._press_key('x')
+            time.sleep(2)  # Wait for first press to register
             print("PRESSING X AGAIN")
-            pydirectinput.press('x')
+            self._press_key('x')
             time.sleep(self.config.encounter_delay)
 
             
@@ -53,11 +127,11 @@ class InputHandler:
         
         # Press all keys down
         for key in keys:
-            pydirectinput.keyDown(key)
+            self._key_down(key)
         
         # Release all keys
         for key in keys:
-            pydirectinput.keyUp(key)
+            self._key_up(key)
         
         
         # Navigate through start menu
@@ -65,9 +139,9 @@ class InputHandler:
     
     def _navigate_start_menu(self):
         """Navigate through the FRLG start menu."""
-        pydirectinput.press('enter')
+        self._press_key('enter')
         time.sleep(3)
-        pydirectinput.press('enter')
-        pydirectinput.press('enter')
-        pydirectinput.press('x')
-        pydirectinput.press('z')
+        self._press_key('enter')
+        self._press_key('enter')
+        self._press_key('x')
+        self._press_key('z')

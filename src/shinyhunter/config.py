@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+import threading
 
 @dataclass
 class ShinyHunterConfig:
@@ -11,7 +12,7 @@ class ShinyHunterConfig:
     
     # Input delays
     pyautogui_pause: float = 2.0
-    pydirectinput_pause: float = 0.7
+    input_pause: float = 0.7  # Cross-platform input delay (replaces pydirectinput_pause)
     encounter_delay: float = 5.0
     restart_delay: float = 4.0
     
@@ -34,11 +35,17 @@ class ShinyHunterConfig:
 
 class ConfigManager:
     _instance: Optional['ConfigManager'] = None
+    _lock = threading.Lock()
     
     def __new__(cls):
+        # First check (without lock for performance)
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.config = ShinyHunterConfig()
+            # Acquire lock for thread safety
+            with cls._lock:
+                # Second check (with lock to prevent race condition)
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance.config = ShinyHunterConfig()
         return cls._instance
     
     def get_config(self) -> ShinyHunterConfig:

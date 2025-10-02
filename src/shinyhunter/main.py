@@ -1,11 +1,17 @@
 import pyautogui
-import pydirectinput
 import tkinter as tk
 import threading
-from pywinauto.application import Application
+
+# Conditional import for Windows-specific functionality
+try:
+    from pywinauto.application import Application
+    PYWINAUTO_AVAILABLE = True
+except ImportError:
+    PYWINAUTO_AVAILABLE = False
+    Application = None
 
 from shiny_hunt_gui import ShinyHuntGUI
-from embedded_app import EmbeddedAppFrame
+from cross_platform_app import CrossPlatformAppFrame
 from shiny_hunter_controller import ShinyHunterController
 from config import ConfigManager
 
@@ -21,6 +27,9 @@ paused = False
 stopped = False
 pause_lock = threading.Lock()
 
+# Global reference to the app frame (set in main)
+cross_platform_app_frame = None
+
 def handle_pause():
     global paused
     print("Handling Pause")
@@ -33,11 +42,13 @@ def stop_hunt():
 
 
 def getHandle():
-    return embedded_app_frame.app_handle
+    global cross_platform_app_frame
+    return cross_platform_app_frame.app_handle if cross_platform_app_frame else None
 
 
 def getTitle():
-    return embedded_app_frame.dropdown_var.get()
+    global cross_platform_app_frame
+    return cross_platform_app_frame.dropdown_var.get() if cross_platform_app_frame else ""
 
 
 if __name__ == '__main__':
@@ -70,11 +81,16 @@ if __name__ == '__main__':
 
     shiny_hunter.log_function = app.log_message
     
-    # Initialize embedded app frame
-    pyApp = Application()
-    embedded_app_frame = EmbeddedAppFrame(
+    # Initialize cross-platform app frame
+    if PYWINAUTO_AVAILABLE:
+        pyApp = Application()
+    else:
+        pyApp = None
+        print("PyWinAuto not available - some features may be limited")
+    
+    cross_platform_app_frame = CrossPlatformAppFrame(
         app.right_frame, pyApp, container_frame=root, master=root
     )
-    embedded_app_frame.grid(column=1, row=0)
+    cross_platform_app_frame.grid(column=1, row=0)
     
     root.mainloop()
