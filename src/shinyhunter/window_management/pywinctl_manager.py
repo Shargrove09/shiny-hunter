@@ -26,6 +26,9 @@ try:
     PYGETWINDOW_AVAILABLE = True
 except ImportError:
     PYGETWINDOW_AVAILABLE = False
+except NotImplementedError:
+    # pygetwindow raises NotImplementedError on unsupported platforms like Linux
+    PYGETWINDOW_AVAILABLE = False
 
 
 class PyWinCtlManager(WindowManager):

@@ -88,6 +88,9 @@ class WindowManagerFactory:
             available.append('fallback')
         except ImportError:
             pass
+        except NotImplementedError:
+            # pygetwindow raises NotImplementedError on unsupported platforms like Linux
+            pass
         
         return available
     

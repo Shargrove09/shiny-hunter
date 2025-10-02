@@ -10,6 +10,9 @@ try:
     PYGETWINDOW_AVAILABLE = True
 except ImportError:
     PYGETWINDOW_AVAILABLE = False
+except NotImplementedError:
+    # pygetwindow raises NotImplementedError on unsupported platforms like Linux
+    PYGETWINDOW_AVAILABLE = False
 
 
 class FallbackManager(WindowManager):
@@ -19,7 +22,10 @@ class FallbackManager(WindowManager):
         super().__init__()
         
         if not PYGETWINDOW_AVAILABLE:
-            raise ImportError("pygetwindow is required but not available")
+            if self.platform.lower() == 'linux':
+                raise ImportError("pygetwindow does not support Linux platform")
+            else:
+                raise ImportError("pygetwindow is required but not available")
         
         # Fallback manager only supports manual mode
         self.embedding_mode = EmbeddingMode.MANUAL
