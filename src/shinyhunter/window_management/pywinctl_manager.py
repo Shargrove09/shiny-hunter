@@ -250,7 +250,7 @@ class PyWinCtlManager(WindowManager):
             return False
     
     def position_window_beside(self, window_info: WindowInfo, reference_window: Any) -> bool:
-        """Position window beside a reference window."""
+        """Position window beside a reference window (legacy method)."""
         try:
             pywinctl_window = window_info.handle
             
@@ -268,6 +268,45 @@ class PyWinCtlManager(WindowManager):
             
         except Exception as e:
             print(f"Error positioning window: {e}")
+            return False
+    
+    def position_window_in_boundary(self, window_info: WindowInfo, boundary: tuple) -> bool:
+        """
+        Position and resize window to fit within a defined boundary.
+        
+        Args:
+            window_info: The window to position
+            boundary: (x, y, width, height) defining the boundary area
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            pywinctl_window = window_info.handle
+            x, y, width, height = boundary
+            
+            # First resize the window to fit the boundary
+            pywinctl_window.resizeTo(width, height)
+            
+            # Then move it to the boundary position
+            pywinctl_window.moveTo(x, y)
+            
+            print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
+            return True
+            
+        except Exception as e:
+            print(f"Error positioning window in boundary: {e}")
+            return False
+    
+    def raise_window(self, window_info: WindowInfo) -> bool:
+        """Raise window above others (stacking order)."""
+        try:
+            pywinctl_window = window_info.handle
+            # PyWinCtl's activate() typically raises the window as well
+            pywinctl_window.activate()
+            return True
+        except Exception as e:
+            print(f"Error raising window: {e}")
             return False
     
     def focus_window(self, window_info: WindowInfo) -> bool:

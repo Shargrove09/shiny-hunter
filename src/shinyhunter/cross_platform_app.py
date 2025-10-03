@@ -143,11 +143,20 @@ class CrossPlatformAppFrame(tk.Frame):
             # Companion mode (macOS/Linux)
             self.position_button = ttk.Button(
                 self.right_frame,
-                text="Position Beside",
+                text="Position in Boundary",
                 command=self._position_window,
                 style='standard.TButton'
             )
             self.position_button.grid(row=button_row, column=0, columnspan=2, pady=(0, 5))
+            
+            self.release_button = ttk.Button(
+                self.right_frame,
+                text="Release Window",
+                command=self._release_window,
+                style='standard.TButton',
+                state="disabled"
+            )
+            self.release_button.grid(row=button_row + 1, column=0, columnspan=2, pady=(0, 5))
             
             self.focus_button = ttk.Button(
                 self.right_frame,
@@ -155,7 +164,7 @@ class CrossPlatformAppFrame(tk.Frame):
                 command=self._focus_window,
                 style='standard.TButton'
             )
-            self.focus_button.grid(row=button_row + 1, column=0, columnspan=2, pady=(0, 10))
+            self.focus_button.grid(row=button_row + 2, column=0, columnspan=2, pady=(0, 10))
             
         else:
             # Manual mode
@@ -176,18 +185,41 @@ class CrossPlatformAppFrame(tk.Frame):
             self.embed_frame.grid(column=1, padx=10, pady=10)
             self.embed_frame.grid_propagate(False)  # Maintain size
         elif self.embedding_mode == EmbeddingMode.COMPANION:
-            # Create placeholder for companion mode info
+            # Create companion frame with defined boundary for window positioning
             self.companion_frame = ttk.LabelFrame(self, text="Companion Window Area", padding="10")
             self.companion_frame.grid(column=1, padx=10, pady=10, sticky="nsew")
             
+            # Define the boundary dimensions for the companion window
+            self.companion_boundary = {
+                'width': 1280,
+                'height': 960,
+                'padding': 10  # Internal padding within the frame
+            }
+            
+            # Create a visual indicator frame for the boundary
+            self.boundary_indicator = tk.Frame(
+                self.companion_frame,
+                width=self.companion_boundary['width'],
+                height=self.companion_boundary['height'],
+                bg="#2a2b2a",
+                relief='sunken',
+                borderwidth=2
+            )
+            self.boundary_indicator.pack(expand=True)
+            self.boundary_indicator.pack_propagate(False)
+            
             info_text = ("Selected window will be positioned\n"
-                        "beside this application window")
-            ttk.Label(
-                self.companion_frame, 
+                        "within this boundary area\n"
+                        f"({self.companion_boundary['width']}x{self.companion_boundary['height']})")
+            self.boundary_label = ttk.Label(
+                self.boundary_indicator, 
                 text=info_text,
                 font=('calibri', 10),
-                justify="center"
-            ).pack(expand=True)
+                justify="center",
+                background="#2a2b2a",
+                foreground="#ffffff"
+            )
+            self.boundary_label.place(relx=0.5, rely=0.5, anchor="center")
     
     def _refresh_windows(self):
         """Refresh the list of available windows."""
@@ -288,18 +320,44 @@ class CrossPlatformAppFrame(tk.Frame):
             self._update_status("Unembedding failed")
     
     def _position_window(self):
-        """Position window beside the main application (companion mode)."""
+        """Position window within the companion boundary area."""
         window_info = self._get_selected_window()
         if not window_info:
             self._update_status("No window selected")
             return
         
         try:
-            success = self.window_manager.position_window_beside(window_info, self.master)
+            # Calculate the boundary position in screen coordinates
+            boundary = self._calculate_companion_boundary()
+            
+            if boundary is None:
+                self._update_status("Boundary not available")
+                return
+            
+            # Position and resize the window to fit within the boundary
+            success = self.window_manager.position_window_in_boundary(window_info, boundary)
+            
             if success:
                 self.selected_window = window_info
                 self.is_window_managed = True
-                self._update_status(f"Positioned: {window_info.title}")
+                
+                # Raise the window to be above the main window
+                self.window_manager.raise_window(window_info)
+                
+                # Update visual indicator
+                self._update_boundary_indicator(active=True, window_title=window_info.title)
+                
+                # Update button states
+                if hasattr(self, 'position_button'):
+                    self.position_button.config(state="disabled")
+                if hasattr(self, 'release_button'):
+                    self.release_button.config(state="normal")
+                
+                self._update_status(f"Positioned in boundary: {window_info.title}")
+                
+                # Setup focus tracking to keep window raised
+                if self.master:
+                    self._setup_focus_tracking()
             else:
                 self._update_status(f"Failed to position: {window_info.title}")
                 
@@ -307,16 +365,132 @@ class CrossPlatformAppFrame(tk.Frame):
             print(f"Positioning error: {e}")
             self._update_status("Positioning failed")
     
+    def _calculate_companion_boundary(self) -> tuple:
+        """
+        Calculate the boundary position in screen coordinates.
+        
+        Returns:
+            Tuple of (x, y, width, height) or None if boundary frame not ready
+        """
+        try:
+            if not hasattr(self, 'boundary_indicator'):
+                return None
+            
+            # Force update to get accurate geometry
+            self.boundary_indicator.update_idletasks()
+            
+            # Get the screen position of the boundary indicator
+            x = self.boundary_indicator.winfo_rootx()
+            y = self.boundary_indicator.winfo_rooty()
+            width = self.companion_boundary['width']
+            height = self.companion_boundary['height']
+            
+            # Verify the boundary fits within the screen
+            # Add some validation to ensure we have valid coordinates
+            if x <= 0 or y <= 0:
+                print(f"Warning: Boundary has invalid position ({x}, {y}), waiting for frame to be ready")
+                # Try to update again
+                self.master.update()
+                x = self.boundary_indicator.winfo_rootx()
+                y = self.boundary_indicator.winfo_rooty()
+            
+            print(f"Calculated companion boundary: ({x}, {y}, {width}, {height})")
+            return (x, y, width, height)
+            
+        except Exception as e:
+            print(f"Error calculating boundary: {e}")
+            return None
+    
+    def _setup_focus_tracking(self):
+        """Setup focus tracking to raise companion window when main window is focused."""
+        if hasattr(self, '_focus_tracking_setup'):
+            return  # Already setup
+        
+        self._focus_tracking_setup = True
+        
+        # Bind focus events to raise the companion window
+        def on_focus_in(event):
+            if self.selected_window and self.is_window_managed:
+                try:
+                    self.window_manager.raise_window(self.selected_window)
+                except Exception as e:
+                    print(f"Error raising window on focus: {e}")
+        
+        # Bind configure events to reposition window when main window moves
+        def on_configure(event):
+            if self.selected_window and self.is_window_managed:
+                # Only reposition if this is a move/resize of the root window
+                if event.widget == self.master:
+                    self._reposition_companion_window()
+        
+        if self.master:
+            self.master.bind("<FocusIn>", on_focus_in)
+            self.master.bind("<Configure>", on_configure)
+            print("Focus tracking and reposition on move enabled for companion window")
+    
+    def _reposition_companion_window(self):
+        """Reposition the companion window to match the current boundary."""
+        if not self.selected_window or not self.is_window_managed:
+            return
+        
+        try:
+            # Recalculate boundary
+            boundary = self._calculate_companion_boundary()
+            
+            if boundary:
+                # Reposition the window
+                self.window_manager.position_window_in_boundary(self.selected_window, boundary)
+                print("Repositioned companion window after main window moved")
+        except Exception as e:
+            print(f"Error repositioning companion window: {e}")
+    
+    def _update_boundary_indicator(self, active: bool = False, window_title: str = ""):
+        """Update the boundary indicator visual state."""
+        if not hasattr(self, 'boundary_indicator'):
+            return
+        
+        try:
+            if active:
+                # Change appearance to indicate active window
+                self.boundary_indicator.config(bg="#1a3a1a", relief='solid', borderwidth=3)
+                info_text = (f"Companion Window Active:\n{window_title}\n"
+                            f"({self.companion_boundary['width']}x{self.companion_boundary['height']})\n\n"
+                            "Window positioned in this boundary\n"
+                            "and will stay above when focused")
+                self.boundary_label.config(
+                    text=info_text,
+                    foreground="#00ff00"
+                )
+            else:
+                # Restore default appearance
+                self.boundary_indicator.config(bg="#2a2b2a", relief='sunken', borderwidth=2)
+                info_text = ("Selected window will be positioned\n"
+                            "within this boundary area\n"
+                            f"({self.companion_boundary['width']}x{self.companion_boundary['height']})")
+                self.boundary_label.config(
+                    text=info_text,
+                    foreground="#ffffff"
+                )
+        except Exception as e:
+            print(f"Error updating boundary indicator: {e}")
+    
     def _focus_window(self):
-        """Focus the selected window."""
+        """Focus and raise the selected window."""
         window_info = self._get_selected_window()
         if not window_info:
             self._update_status("No window selected")
             return
         
         try:
-            success = self.window_manager.focus_window(window_info)
-            if success:
+            # First raise the window above others
+            raise_success = self.window_manager.raise_window(window_info)
+            
+            # Then focus it
+            focus_success = self.window_manager.focus_window(window_info)
+            
+            if raise_success and focus_success:
+                self._update_status(f"Focused and raised: {window_info.title}")
+            elif focus_success:
                 self._update_status(f"Focused: {window_info.title}")
             else:
                 self._update_status(f"Failed to focus: {window_info.title}")
@@ -324,6 +498,33 @@ class CrossPlatformAppFrame(tk.Frame):
         except Exception as e:
             print(f"Focus error: {e}")
             self._update_status("Focus failed")
+    
+    def _release_window(self):
+        """Release the companion window from boundary management."""
+        if not self.selected_window or not self.is_window_managed:
+            self._update_status("No window to release")
+            return
+        
+        try:
+            # Just mark as no longer managed
+            released_title = self.selected_window.title
+            self.selected_window = None
+            self.is_window_managed = False
+            
+            # Update visual indicator
+            self._update_boundary_indicator(active=False)
+            
+            # Update button states
+            if hasattr(self, 'position_button'):
+                self.position_button.config(state="normal")
+            if hasattr(self, 'release_button'):
+                self.release_button.config(state="disabled")
+            
+            self._update_status(f"Released: {released_title}")
+            
+        except Exception as e:
+            print(f"Release error: {e}")
+            self._update_status("Release failed")
     
     def _update_status(self, message: str):
         """Update the status display."""
@@ -350,6 +551,11 @@ class CrossPlatformAppFrame(tk.Frame):
             try:
                 if self.embedding_mode == EmbeddingMode.FULL_EMBED:
                     self.window_manager.unembed_window(self.selected_window)
+                elif self.embedding_mode == EmbeddingMode.COMPANION:
+                    # For companion mode, just update the indicator
+                    self._update_boundary_indicator(active=False)
+                    # Optionally restore window to original position/size
+                    # (currently we just leave it where it is)
                 print("Window management cleanup completed")
             except Exception as e:
                 print(f"Cleanup error: {e}")

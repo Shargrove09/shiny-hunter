@@ -65,6 +65,25 @@ class WindowManager(ABC):
         pass
     
     @abstractmethod
+    def position_window_in_boundary(self, window_info: WindowInfo, boundary: Tuple[int, int, int, int]) -> bool:
+        """
+        Position and resize window to fit within a defined boundary.
+        
+        Args:
+            window_info: The window to position
+            boundary: (x, y, width, height) defining the boundary area
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def raise_window(self, window_info: WindowInfo) -> bool:
+        """Raise window above others (stacking order)."""
+        pass
+    
+    @abstractmethod
     def focus_window(self, window_info: WindowInfo) -> bool:
         """Bring window to front and focus it."""
         pass
