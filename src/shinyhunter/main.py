@@ -107,4 +107,16 @@ if __name__ == '__main__':
     )
     cross_platform_app_frame.grid(column=1, row=0)
     
+    # Connect the window manager to the input handler for Linux/macOS
+    # This allows the input handler to focus the target window before sending keystrokes
+    def update_target_window():
+        """Update the input handler's target window from cross_platform_app."""
+        window_info = cross_platform_app_frame.get_selected_window_info()
+        if window_info:
+            shiny_hunter.input_handler.set_target_window(window_info)
+            print(f"Updated input handler target window: {window_info.title}")
+    
+    # Store the update function in the cross_platform_app for callback
+    cross_platform_app_frame.update_target_window_callback = update_target_window
+    
     root.mainloop()

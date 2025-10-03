@@ -38,6 +38,7 @@ class CrossPlatformAppFrame(tk.Frame):
         # State tracking
         self.selected_window: Optional[WindowInfo] = None
         self.is_window_managed = False
+        self.update_target_window_callback = None  # Callback to update input handler
         
         # UI components
         self.dropdown_var = tk.StringVar()
@@ -353,6 +354,14 @@ class CrossPlatformAppFrame(tk.Frame):
                 if hasattr(self, 'release_button'):
                     self.release_button.config(state="normal")
                 
+                # Notify app controller if available
+                if hasattr(self.app, 'set_target_window'):
+                    self.app.set_target_window(window_info)
+                
+                # Call callback to update input handler
+                if self.update_target_window_callback:
+                    self.update_target_window_callback()
+                
                 self._update_status(f"Positioned in boundary: {window_info.title}")
                 
                 # Setup focus tracking to keep window raised
@@ -520,6 +529,10 @@ class CrossPlatformAppFrame(tk.Frame):
             if hasattr(self, 'release_button'):
                 self.release_button.config(state="disabled")
             
+            # Clear the target window in input handler
+            if self.update_target_window_callback:
+                self.update_target_window_callback()
+            
             self._update_status(f"Released: {released_title}")
             
         except Exception as e:
@@ -569,3 +582,7 @@ class CrossPlatformAppFrame(tk.Frame):
         if self.selected_window and hasattr(self.selected_window.handle, '_hWnd'):
             return self.selected_window.handle._hWnd
         return None
+    
+    def get_selected_window_info(self) -> Optional[WindowInfo]:
+        """Get the currently selected/managed window info."""
+        return self.selected_window if self.is_window_managed else None

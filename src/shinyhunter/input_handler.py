@@ -21,6 +21,7 @@ class InputHandler:
     def __init__(self):
         self.config = ConfigManager().get_config()
         self.platform = platform.system()
+        self.target_window = None  # Reference to target window for focusing
         
         # Initialize the appropriate input method
         if PYNPUT_AVAILABLE:
@@ -36,6 +37,29 @@ class InputHandler:
             raise ImportError("No suitable input library available. Please install pynput or pyautogui")
 
         print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
+    
+    def set_target_window(self, window_info):
+        """
+        Set the target window that should receive keystrokes.
+        
+        Args:
+            window_info: WindowInfo object from window_management
+        """
+        self.target_window = window_info
+        print(f"Target window set to: {window_info.title if window_info else 'None'}")
+    
+    def _ensure_window_focused(self):
+        """Ensure the target window has focus before sending keystrokes."""
+        if self.target_window and hasattr(self.target_window.handle, 'activate'):
+            try:
+                # Focus/activate the target window
+                self.target_window.handle.activate()
+                time.sleep(0.1)  # Small delay to ensure focus is set
+                return True
+            except Exception as e:
+                print(f"Warning: Could not focus target window: {e}")
+                return False
+        return False
     
     def _get_key_mapping(self):
         """Get platform-specific key mappings."""
@@ -88,6 +112,10 @@ class InputHandler:
     
     def encounter_sequence(self):
         """Execute the encounter button sequence."""
+        # Ensure target window is focused (Linux/macOS)
+        if self.platform in ["Linux", "Darwin"]:
+            self._ensure_window_focused()
+        
         self._press_key('x')
         self._press_key('x')
         time.sleep(self.config.encounter_delay)
@@ -97,6 +125,12 @@ class InputHandler:
         max_retries = 3
         
         for attempt in range(max_retries):
+            # Ensure target window is focused (Linux/macOS)
+            if self.platform in ["Linux", "Darwin"]:
+                focused = self._ensure_window_focused()
+                if not focused:
+                    print(f"Warning: Target window may not be focused")
+            
             # Execute encounter
             time.sleep(0.25)
             print("PRESSING X")
@@ -122,6 +156,10 @@ class InputHandler:
     
     def restart_sequence(self):
         """Execute the restart sequence."""
+        # Ensure target window is focused (Linux/macOS)
+        if self.platform in ["Linux", "Darwin"]:
+            self._ensure_window_focused()
+        
         # Restart Sequence - (A + B Start + Select)
         keys = ['backspace', 'enter', 'x', 'z']
         
