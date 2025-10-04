@@ -26,9 +26,13 @@ class ShinyHunterConfig:
     correlation_threshold: float = 0.4468404494968037
     correlation_tolerance: float = 0.0001
     
+    # Calibration mode
+    calibration_mode: bool = False  # When True, app is in threshold setup mode
+    
     # File paths
     reference_image_path: str = './images/shiny_mewtwo_ref.png'
     encounter_screen_template_path: str = './images/encounter_screen_template.png'
+    calibration_reference_path: str = './images/calibration_reference.png'
     
     # Safety
     failsafe_enabled: bool = False
@@ -50,3 +54,13 @@ class ConfigManager:
     
     def get_config(self) -> ShinyHunterConfig:
         return self.config
+    
+    def save_config(self):
+        """
+        Save configuration to file (placeholder).
+        Currently config is in-memory only.
+        TODO: Implement persistence to JSON or YAML file.
+        """
+        # For now, just log that settings were updated
+        # In the future, this could write to a config.json file
+        print(f"Config updated: threshold={self.config.correlation_threshold}")

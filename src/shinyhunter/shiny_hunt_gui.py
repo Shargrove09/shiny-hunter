@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog
 from threading import Thread
 from PIL import Image, ImageTk
 import sv_ttk
+import os
 from styles import shiny_style
 from screenshot_manager import ScreenshotManager
 from input_handler import InputHandler
@@ -107,6 +108,9 @@ class ShinyHuntGUI:
             self.left_frame, text="Settings", command=self.open_settings, style="standard.TButton")
         self.settings_button.grid(row=6, column=0, pady=10)
 
+        # Calibration Section
+        self._create_calibration_section()
+
         screenshot_button = ttk.Button(
             self.right_frame, 
             text="Take Screenshot", 
@@ -127,6 +131,125 @@ class ShinyHuntGUI:
         ### Right Frame ###
         ###################
     
+    def _create_calibration_section(self):
+        """Create the threshold calibration section in the left frame."""
+        # Calibration Frame
+        calibration_frame = ttk.LabelFrame(self.left_frame, text="Threshold Calibration", padding="10")
+        calibration_frame.grid(row=7, column=0, pady=(20, 0), sticky="ew")
+        
+        # Calibration mode toggle
+        self.calibration_mode_var = tk.BooleanVar(value=False)
+        calibration_toggle = ttk.Checkbutton(
+            calibration_frame,
+            text="Calibration Mode",
+            variable=self.calibration_mode_var,
+            command=self._toggle_calibration_mode
+        )
+        calibration_toggle.pack(anchor="w", pady=(0, 10))
+        
+        # Info label
+        self.calibration_info = ttk.Label(
+            calibration_frame,
+            text="Toggle on to setup threshold.\nNavigate to encounter screen,\nthen capture reference.",
+            font=('calibri', 9),
+            justify="left"
+        )
+        self.calibration_info.pack(anchor="w", pady=(0, 10))
+        
+        # Capture reference button
+        self.capture_reference_button = ttk.Button(
+            calibration_frame,
+            text="Capture Reference",
+            command=self._capture_calibration_reference,
+            style='standard.TButton',
+            state='disabled'
+        )
+        self.capture_reference_button.pack(fill='x', pady=(0, 5))
+        
+        # Calculate threshold button
+        self.calculate_threshold_button = ttk.Button(
+            calibration_frame,
+            text="Calculate Threshold",
+            command=self._calculate_threshold,
+            style='standard.TButton',
+            state='disabled'
+        )
+        self.calculate_threshold_button.pack(fill='x', pady=(0, 5))
+        
+        # Current threshold display
+        self.threshold_display = ttk.Label(
+            calibration_frame,
+            text=f"Current: {self.controller.config.correlation_threshold:.4f}",
+            font=('calibri', 9, 'bold')
+        )
+        self.threshold_display.pack(anchor="w", pady=(5, 0))
+    
+    def _toggle_calibration_mode(self):
+        """Toggle calibration mode on/off."""
+        config = ConfigManager().get_config()
+        config.calibration_mode = self.calibration_mode_var.get()
+        
+        if config.calibration_mode:
+            # Enable calibration buttons and disable hunt
+            self.capture_reference_button.config(state='normal')
+            self.start_button.config(state='disabled')
+            self.calibration_info.config(
+                text="Calibration Mode Active!\nNavigate to encounter screen,\nthen capture reference.",
+                foreground='orange'
+            )
+            self.log_message("Calibration mode enabled. Hunt disabled.")
+        else:
+            # Disable calibration buttons and enable hunt
+            self.capture_reference_button.config(state='disabled')
+            self.calculate_threshold_button.config(state='disabled')
+            self.start_button.config(state='normal')
+            self.calibration_info.config(
+                text="Toggle on to setup threshold.\nNavigate to encounter screen,\nthen capture reference.",
+                foreground=''
+            )
+            self.log_message("Calibration mode disabled. Hunt enabled.")
+    
+    def _capture_calibration_reference(self):
+        """Capture a reference screenshot for calibration."""
+        config = ConfigManager().get_config()
+        
+        # Take screenshot and save as calibration reference
+        screenshot_path = self.screenshot_manager.take_screenshot('calibration_reference.png')
+        
+        self.log_message(f"Calibration reference captured: {screenshot_path}")
+        self.log_message("Now capture a second screenshot to calculate threshold.")
+        
+        # Enable the calculate button
+        self.calculate_threshold_button.config(state='normal')
+    
+    def _calculate_threshold(self):
+        """Calculate the correlation threshold between reference and current screen."""
+        config = ConfigManager().get_config()
+        
+        # Take a current screenshot
+        current_screenshot = self.screenshot_manager.take_screenshot('calibration_current.png')
+        
+        # Calculate correlation between calibration reference and current
+        reference_path = config.calibration_reference_path
+        
+        if not os.path.exists(reference_path):
+            self.log_message("Error: Calibration reference not found. Capture reference first.")
+            return
+        
+        # Use the image processor to calculate correlation
+        correlation = self.controller.image_processor.get_correlation(
+            reference_path, 
+            current_screenshot
+        )
+        
+        self.log_message(f"Calculated correlation: {correlation:.6f}")
+        self.log_message(f"Recommended threshold: {correlation:.6f}")
+        
+        # Update the config with the new threshold
+        config.correlation_threshold = correlation
+        self.threshold_display.config(text=f"Current: {correlation:.4f}")
+        
+        self.log_message("Threshold updated! You can disable calibration mode now.")
 
     ### Methods for GUI Interaction ###
     def log_message(self, message):
