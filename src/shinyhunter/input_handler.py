@@ -65,8 +65,8 @@ class InputHandler:
         """Get platform-specific key mappings."""
         if self.input_method == "pynput":
             return {
-                'x': 'x',
-                'z': 'z', 
+                'x': Key.x,
+                'z': Key.z, 
                 'enter': Key.enter,
                 'backspace': Key.backspace
             }
@@ -84,10 +84,10 @@ class InputHandler:
         mapped_key = key_map.get(key, key)
         
         if self.input_method == "pynput":
-            
             self.keyboard.press(mapped_key)
+            time.sleep(0.05)  # Small delay between press and release
             self.keyboard.release(mapped_key)
-            time.sleep(0.1)  # Small delay between key presses
+            time.sleep(0.1)  # Small delay after key press
         else:  # pyautogui fallback
             pyautogui.press(mapped_key)
     
@@ -97,6 +97,7 @@ class InputHandler:
         mapped_key = key_map.get(key, key)
         
         if self.input_method == "pynput":
+            print(f"Key down: {mapped_key}")
             self.keyboard.press(mapped_key)
         else:  # pyautogui fallback
             pyautogui.keyDown(mapped_key)
@@ -107,6 +108,7 @@ class InputHandler:
         mapped_key = key_map.get(key, key)
         
         if self.input_method == "pynput":
+            print(f"Key up: {mapped_key}")
             self.keyboard.release(mapped_key)
         else:  # pyautogui fallback
             pyautogui.keyUp(mapped_key)
