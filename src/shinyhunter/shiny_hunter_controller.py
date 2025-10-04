@@ -95,6 +95,7 @@ class ShinyHunterController:
         """Handle when no shiny is found."""
         self.log('No Shiny Found!')
         self.screenshot_manager.take_screenshot('emulator_screenshot.png')
+        time.sleep(1)  # Brief pause before reset
         self.input_handler.restart_sequence()
     
     def set_running_status(self, status: bool):
