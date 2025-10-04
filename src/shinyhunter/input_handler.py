@@ -215,12 +215,16 @@ class InputHandler:
         
         # Continue
         self._press_key('enter')
+        time.sleep(0.05)
         
         # Continue
         self._press_key('enter')
+        time.sleep(0.05)
         
         # Final menu navigation
         self._press_key('x')
+        time.sleep(0.05)
+
         self._press_key('z')
         
         print("Start menu navigation complete")
