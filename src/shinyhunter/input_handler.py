@@ -236,7 +236,7 @@ class InputHandler:
         # Second screen
         print("Pressing Enter (2/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(1.5)  # Wait for next screen
+        time.sleep(2)  # Wait for next screen
         
         # Third screen
         print("Pressing Enter (3/3)...")
