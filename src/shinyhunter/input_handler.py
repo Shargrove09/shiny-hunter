@@ -50,16 +50,31 @@ class InputHandler:
     
     def _ensure_window_focused(self):
         """Ensure the target window has focus before sending keystrokes."""
-        if self.target_window and hasattr(self.target_window.handle, 'activate'):
+        if not self.target_window:
+            print("Warning: No target window set")
+            return False
+            
+        if hasattr(self.target_window, 'handle') and hasattr(self.target_window.handle, 'activate'):
             try:
                 # Focus/activate the target window
                 self.target_window.handle.activate()
-                time.sleep(0.1)  # Small delay to ensure focus is set
+                time.sleep(0.2)  # Increased delay to ensure focus is set
                 return True
             except Exception as e:
                 print(f"Warning: Could not focus target window: {e}")
                 return False
-        return False
+        elif hasattr(self.target_window, 'focus'):
+            try:
+                # Alternative method for focusing
+                self.target_window.focus()
+                time.sleep(0.2)
+                return True
+            except Exception as e:
+                print(f"Warning: Could not focus target window (alternative method): {e}")
+                return False
+        else:
+            print("Warning: Target window does not support focusing")
+            return False
     
     def _get_key_mapping(self):
         """Get platform-specific key mappings."""
@@ -154,35 +169,58 @@ class InputHandler:
             
         return False
     
-
-
     
     def restart_sequence(self):
         """Execute the restart sequence."""
+        print("Starting restart sequence...")
+        
         # Ensure target window is focused (Linux/macOS)
         if self.platform in ["Linux", "Darwin"]:
-            self._ensure_window_focused()
+            focused = self._ensure_window_focused()
+            if not focused:
+                print("Warning: Could not focus target window for restart")
+            time.sleep(0.3)  # Give window time to focus
         
-        # Restart Sequence - (A + B Start + Select)
+        # Restart Sequence - (A + B + Start + Select) - All pressed simultaneously
         keys = ['backspace', 'enter', 'x', 'z']
         
+        print("Pressing reset combination (A+B+Start+Select)...")
         # Press all keys down
         for key in keys:
             self._key_down(key)
+            time.sleep(0.02)  # Small delay between each key down
+        
+        # Hold for a moment
+        time.sleep(0.2)
         
         # Release all keys
         for key in keys:
             self._key_up(key)
+            time.sleep(0.02)  # Small delay between each key release
         
+        # Wait for reset to complete
+        print("Waiting for game reset...")
+        time.sleep(self.config.restart_delay)
         
         # Navigate through start menu
         self._navigate_start_menu()
     
     def _navigate_start_menu(self):
         """Navigate through the FRLG start menu."""
+        print("Navigating start menu...")
+        
+        # Continue through opening screens
         self._press_key('enter')
         time.sleep(3)
+        
+        # Continue
         self._press_key('enter')
+        
+        # Continue
         self._press_key('enter')
+        
+        # Final menu navigation
         self._press_key('x')
         self._press_key('z')
+        
+        print("Start menu navigation complete")
