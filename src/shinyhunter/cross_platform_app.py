@@ -188,7 +188,7 @@ class CrossPlatformAppFrame(tk.Frame):
         x_button = ttk.Button(
             input_frame,
             text="Press 'X'",
-            command=lambda: self.app.shiny_hunter_controller.input_handler._press_key('x'),
+            command=self._press_x_key,
             style='standard.TButton'
         )
         x_button.pack(fill='x', pady=2)
@@ -196,7 +196,7 @@ class CrossPlatformAppFrame(tk.Frame):
         z_button = ttk.Button(
             input_frame,
             text="Press 'Z'",
-            command=lambda: self.app.shiny_hunter_controller.input_handler._press_key('z'),
+            command=self._press_z_key,
             style='standard.TButton'
         )
         z_button.pack(fill='x', pady=2)
@@ -204,10 +204,31 @@ class CrossPlatformAppFrame(tk.Frame):
         restart_button = ttk.Button(
             input_frame,
             text="Restart Sequence",
-            command=self.app.shiny_hunter_controller.input_handler.restart_sequence,
+            command=self._execute_restart_sequence,
             style='standard.TButton'
         )
         restart_button.pack(fill='x', pady=2)
+    
+    def _press_x_key(self):
+        """Simulate pressing the X key."""
+        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
+            self.app.shiny_hunter_controller.input_handler._press_key('x')
+        else:
+            print("Error: Shiny hunter controller not available")
+    
+    def _press_z_key(self):
+        """Simulate pressing the Z key."""
+        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
+            self.app.shiny_hunter_controller.input_handler._press_key('z')
+        else:
+            print("Error: Shiny hunter controller not available")
+    
+    def _execute_restart_sequence(self):
+        """Execute the restart sequence."""
+        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
+            self.app.shiny_hunter_controller.input_handler.restart_sequence()
+        else:
+            print("Error: Shiny hunter controller not available")
 
     def _create_window_area(self):
         """Create the area for embedding or positioning the window."""
