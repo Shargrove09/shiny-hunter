@@ -150,7 +150,7 @@ class ShinyHuntGUI:
         # Info label
         self.calibration_info = ttk.Label(
             calibration_frame,
-            text="1. Capture reference (normal)\n2. View correlation values\n3. Set threshold in Settings",
+            text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold below normal",
             font=('calibri', 9),
             justify="left"
         )
@@ -174,14 +174,65 @@ class ShinyHuntGUI:
             state='disabled'
         )
         self.view_correlation_button.pack(fill='x', pady=(0, 5))
+        
+        # Separator
+        ttk.Separator(calibration_frame, orient='horizontal').pack(fill='x', pady=(10, 10))
+        
+        # Threshold input section
+        threshold_label = ttk.Label(
+            calibration_frame,
+            text="Correlation Threshold:",
+            font=('calibri', 9)
+        )
+        threshold_label.pack(anchor="w", pady=(0, 5))
+        
+        # Threshold entry with current value
+        threshold_frame = ttk.Frame(calibration_frame)
+        threshold_frame.pack(fill='x', pady=(0, 5))
+        
+        self.threshold_entry = ttk.Entry(threshold_frame, width=15)
+        self.threshold_entry.pack(side='left', expand=True, fill='x')
+        self.threshold_entry.insert(0, str(self.controller.config.correlation_threshold))
+        
+        update_threshold_btn = ttk.Button(
+            threshold_frame,
+            text="Set",
+            command=self._update_threshold,
+            width=5
+        )
+        update_threshold_btn.pack(side='left', padx=(5, 0))
+        
+        # Tolerance input section
+        tolerance_label = ttk.Label(
+            calibration_frame,
+            text="Correlation Tolerance:",
+            font=('calibri', 9)
+        )
+        tolerance_label.pack(anchor="w", pady=(5, 5))
+        
+        # Tolerance entry with current value
+        tolerance_frame = ttk.Frame(calibration_frame)
+        tolerance_frame.pack(fill='x', pady=(0, 5))
+        
+        self.tolerance_entry = ttk.Entry(tolerance_frame, width=15)
+        self.tolerance_entry.pack(side='left', expand=True, fill='x')
+        self.tolerance_entry.insert(0, str(self.controller.config.correlation_tolerance))
+        
+        update_tolerance_btn = ttk.Button(
+            tolerance_frame,
+            text="Set",
+            command=self._update_tolerance,
+            width=5
+        )
+        update_tolerance_btn.pack(side='left', padx=(5, 0))
                 
         # Current threshold display
         self.threshold_display = ttk.Label(
             calibration_frame,
-            text=f"Current: {self.controller.config.correlation_threshold:.4f}",
+            text=f"Active: {self.controller.config.correlation_threshold:.4f}",
             font=('calibri', 9, 'bold')
         )
-        self.threshold_display.pack(anchor="w", pady=(5, 0))
+        self.threshold_display.pack(anchor="w", pady=(10, 0))
     
     def _toggle_calibration_mode(self):
         """Toggle calibration mode on/off."""
@@ -200,10 +251,9 @@ class ShinyHuntGUI:
         else:
             # Disable calibration buttons and enable hunt
             self.capture_reference_button.config(state='disabled')
-            self.calculate_threshold_button.config(state='disabled')
             self.start_button.config(state='normal')
             self.calibration_info.config(
-                text="Toggle on to setup threshold.\nNavigate to encounter screen,\nthen capture reference.",
+                text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold below normal",
                 foreground=''
             )
             self.log_message("Calibration mode disabled. Hunt enabled.")
@@ -292,6 +342,48 @@ class ShinyHuntGUI:
             self.log_message("💡 Try with more encounters to find a clear pattern")
         
         self.log_message("\n👉 Go to Settings to manually set your threshold")
+    
+    def _update_threshold(self):
+        """Update the correlation threshold from the calibration section."""
+        try:
+            new_threshold = float(self.threshold_entry.get())
+            
+            # Validate the threshold value
+            if new_threshold < 0 or new_threshold > 1:
+                self.log_message("❌ Error: Threshold must be between 0 and 1")
+                return
+            
+            # Update the config
+            config = ConfigManager().get_config()
+            config.correlation_threshold = new_threshold
+            
+            # Update the display
+            self.threshold_display.config(text=f"Active: {new_threshold:.4f}")
+            
+            self.log_message(f"✅ Threshold updated to: {new_threshold:.4f}")
+            self.log_message(f"   Values < {new_threshold:.4f} will be flagged as shiny")
+            
+        except ValueError:
+            self.log_message("❌ Error: Invalid threshold value. Please enter a number.")
+    
+    def _update_tolerance(self):
+        """Update the correlation tolerance from the calibration section."""
+        try:
+            new_tolerance = float(self.tolerance_entry.get())
+            
+            # Validate the tolerance value
+            if new_tolerance < 0 or new_tolerance > 1:
+                self.log_message("❌ Error: Tolerance must be between 0 and 1")
+                return
+            
+            # Update the config
+            config = ConfigManager().get_config()
+            config.correlation_tolerance = new_tolerance
+            
+            self.log_message(f"✅ Tolerance updated to: {new_tolerance:.6f}")
+            
+        except ValueError:
+            self.log_message("❌ Error: Invalid tolerance value. Please enter a number.")
 
 
     # Don't think this is actually needed anymore since the threshold should just be set directly by the user 
