@@ -31,8 +31,7 @@ class ShinyHunterConfig:
     
     # File paths
     reference_image_path: str = './images/shiny_mewtwo_ref.png'
-    encounter_screen_template_path: str = './images/encounter_screen_template.png'
-    calibration_reference_path: str = './images/calibration_reference.png'
+    calibration_reference_path: str = './screenshots/calibration_reference.png'
     
     # Safety
     failsafe_enabled: bool = False
