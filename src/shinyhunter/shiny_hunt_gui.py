@@ -190,8 +190,9 @@ class ShinyHuntGUI:
         threshold_frame = ttk.Frame(calibration_frame)
         threshold_frame.pack(fill='x', pady=(0, 5))
         
-        self.threshold_entry = ttk.Entry(threshold_frame, width=15)
+        self.threshold_entry = ttk.Entry(threshold_frame, width=15, state='normal')
         self.threshold_entry.pack(side='left', expand=True, fill='x')
+        self.threshold_entry.delete(0, tk.END)
         self.threshold_entry.insert(0, str(self.controller.config.correlation_threshold))
         
         update_threshold_btn = ttk.Button(
@@ -214,8 +215,9 @@ class ShinyHuntGUI:
         tolerance_frame = ttk.Frame(calibration_frame)
         tolerance_frame.pack(fill='x', pady=(0, 5))
         
-        self.tolerance_entry = ttk.Entry(tolerance_frame, width=15)
+        self.tolerance_entry = ttk.Entry(tolerance_frame, width=15, state='normal')
         self.tolerance_entry.pack(side='left', expand=True, fill='x')
+        self.tolerance_entry.delete(0, tk.END)
         self.tolerance_entry.insert(0, str(self.controller.config.correlation_tolerance))
         
         update_tolerance_btn = ttk.Button(
