@@ -241,7 +241,7 @@ class InputHandler:
         # Third screen
         print("Pressing Enter (3/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(1.5)  # Wait for menu to appear
+        time.sleep(2)  # Wait for menu to appear
         
         # Navigate menu with X
         print("Pressing X (menu navigation)...")
