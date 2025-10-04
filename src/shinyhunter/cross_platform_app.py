@@ -67,6 +67,9 @@ class CrossPlatformAppFrame(tk.Frame):
         
         # Action buttons (adapted to capabilities)
         self._create_action_buttons()
+
+        # Input simulation buttons
+        self._create_input_buttons()
         
         # Embedded/companion area (if supported)
         if self.embedding_mode != EmbeddingMode.MANUAL:
@@ -177,8 +180,39 @@ class CrossPlatformAppFrame(tk.Frame):
                 justify="center"
             ).grid(row=button_row, column=0, columnspan=2, pady=10)
     
+    def _create_input_buttons(self):
+        """Create buttons for simulating user input."""
+        input_frame = ttk.LabelFrame(self.right_frame, text="Input Simulation", padding="5")
+        input_frame.grid(row=7, column=0, columnspan=2, pady=(10, 0), sticky="ew")
+
+        x_button = ttk.Button(
+            input_frame,
+            text="Press 'X'",
+            command=lambda: self.app.shiny_hunter_controller.input_handler._press_key('x'),
+            style='standard.TButton'
+        )
+        x_button.pack(fill='x', pady=2)
+
+        z_button = ttk.Button(
+            input_frame,
+            text="Press 'Z'",
+            command=lambda: self.app.shiny_hunter_controller.input_handler._press_key('z'),
+            style='standard.TButton'
+        )
+        z_button.pack(fill='x', pady=2)
+
+        restart_button = ttk.Button(
+            input_frame,
+            text="Restart Sequence",
+            command=self.app.shiny_hunter_controller.input_handler.restart_sequence,
+            style='standard.TButton'
+        )
+        restart_button.pack(fill='x', pady=2)
+
     def _create_window_area(self):
-        """Create the area for embedded or companion windows."""
+        """Create the area for embedding or positioning the window."""
+        # This frame will act as the container for the embedded window
+        # or as a visual boundary for companion mode.
         if self.embedding_mode == EmbeddingMode.FULL_EMBED:
             # Create embedding frame
             self.embed_frame = tk.Frame(self, width=1280, height=960)

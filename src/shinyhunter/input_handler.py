@@ -84,6 +84,7 @@ class InputHandler:
         mapped_key = key_map.get(key, key)
         
         if self.input_method == "pynput":
+            
             self.keyboard.press(mapped_key)
             self.keyboard.release(mapped_key)
             time.sleep(0.1)  # Small delay between key presses

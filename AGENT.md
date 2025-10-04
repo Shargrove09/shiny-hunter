@@ -406,3 +406,7 @@ When testing or modifying code:
 - **Recent**: Implemented thread-safe singleton for ConfigManager
 - **Recent**: Decoupled controller from Tkinter (removed tk.IntVar dependency)
 - **Recent**: Fixed attempt counter logic (increment after verification only)
+
+### Notes
+
+- Avoid creating separate files for instructions/changes unless prompted or asking specifically.
