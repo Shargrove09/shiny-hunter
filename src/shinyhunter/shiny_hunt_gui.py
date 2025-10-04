@@ -150,7 +150,7 @@ class ShinyHuntGUI:
         # Info label
         self.calibration_info = ttk.Label(
             calibration_frame,
-            text="Toggle on to setup threshold.\nNavigate to encounter screen,\nthen capture reference.",
+            text="1. Capture reference (normal)\n2. View correlation values\n3. Set threshold in Settings",
             font=('calibri', 9),
             justify="left"
         )
@@ -166,16 +166,15 @@ class ShinyHuntGUI:
         )
         self.capture_reference_button.pack(fill='x', pady=(0, 5))
         
-        # Calculate threshold button
-        self.calculate_threshold_button = ttk.Button(
+        self.view_correlation_button = ttk.Button(
             calibration_frame,
-            text="Calculate Threshold",
-            command=self._calculate_threshold,
+            text="View Correlation",
+            command=self._view_correlation,  
             style='standard.TButton',
             state='disabled'
         )
-        self.calculate_threshold_button.pack(fill='x', pady=(0, 5))
-        
+        self.view_correlation_button.pack(fill='x', pady=(0, 5))
+                
         # Current threshold display
         self.threshold_display = ttk.Label(
             calibration_frame,
@@ -242,6 +241,62 @@ class ShinyHuntGUI:
         # Enable the calculate button
         self.calculate_threshold_button.config(state='normal')
     
+
+
+
+    def _view_correlation(self):
+        """View the correlation between reference and current screen for calibration purposes."""
+        import time
+        config = ConfigManager().get_config()
+        
+        # Focus window (existing code)
+        if hasattr(self, 'cross_platform_app_frame'):
+            window_info = self.cross_platform_app_frame.get_selected_window_info()
+            if window_info:
+                try:
+                    window_manager = self.cross_platform_app_frame.window_manager
+                    if window_manager:
+                        self.log_message("Focusing game window...")
+                        window_manager.raise_window(window_info)
+                        window_manager.focus_window(window_info)
+                        time.sleep(0.5)
+                except Exception as e:
+                    self.log_message(f"Warning: Could not focus window: {e}")
+        
+        # Take current screenshot
+        current_screenshot = self.screenshot_manager.take_screenshot('calibration_current.png')
+        
+        # Get reference path
+        reference_path = config.calibration_reference_path
+        
+        if not os.path.exists(reference_path):
+            self.log_message("Error: Calibration reference not found. Capture reference first.")
+            return
+        
+        # Calculate correlation
+        correlation = self.controller.image_processor.get_correlation(
+            reference_path, 
+            current_screenshot
+        )
+        
+        # JUST DISPLAY IT - DON'T SET IT
+        self.log_message("=" * 50)
+        self.log_message(f"📊 Correlation with reference: {correlation:.6f}")
+        self.log_message("=" * 50)
+        
+        if correlation > 0.85:
+            self.log_message("✅ This appears to be a NORMAL encounter (high correlation)")
+            self.log_message(f"💡 Set your threshold BELOW this value (recommended: ~{correlation * 0.75:.4f})")
+        elif correlation < 0.60:
+            self.log_message("🌟 This appears to be DIFFERENT from reference (possible shiny!)")
+            self.log_message(f"💡 Set your threshold ABOVE this value (recommended: ~{correlation * 1.3:.4f})")
+        else:
+            self.log_message("⚠️  Mid-range correlation - hard to determine")
+            self.log_message("💡 Try with more encounters to find a clear pattern")
+        
+        self.log_message("\n👉 Go to Settings to manually set your threshold")
+
+
     # Don't think this is actually needed anymore since the threshold should just be set directly by the user 
     # in settings, but leaving for now TODO: Remove if confirmed unnecessary
     def _calculate_threshold(self):

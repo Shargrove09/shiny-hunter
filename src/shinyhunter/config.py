@@ -23,7 +23,7 @@ class ShinyHunterConfig:
     
     # Shiny detection
     # correlation_threshold: float = 0.2228965728096372
-    correlation_threshold: float = 0.4468404494968037
+    correlation_threshold: float = 0.4468404494968037 # we should just set the threshold u
     correlation_tolerance: float = 0.0001
     
     # Calibration mode
