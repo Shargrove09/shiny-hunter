@@ -93,8 +93,18 @@ class InputHandler:
                 'backspace': 'backspace'
             }
     
-    def _press_key(self, key):
-        """Cross-platform key press."""
+    def _press_key(self, key, ensure_focus=False):
+        """Cross-platform key press.
+        
+        Args:
+            key: The key to press
+            ensure_focus: If True, ensures window is focused before pressing (Linux/macOS)
+        """
+        # Optionally ensure window focus before key press (useful for critical inputs)
+        if ensure_focus and self.platform in ["Linux", "Darwin"]:
+            self._ensure_window_focused()
+            time.sleep(0.1)
+        
         key_map = self._get_key_mapping()
         mapped_key = key_map.get(key, key)
         
@@ -102,7 +112,7 @@ class InputHandler:
             self.keyboard.press(mapped_key)
             time.sleep(0.05)  # Small delay between press and release
             self.keyboard.release(mapped_key)
-            time.sleep(0.1)  # Small delay after key press
+            time.sleep(0.15)  # Increased delay after key press for better registration
         else:  # pyautogui fallback
             pyautogui.press(mapped_key)
     
@@ -209,22 +219,38 @@ class InputHandler:
         """Navigate through the FRLG start menu."""
         print("Navigating start menu...")
         
-        # Continue through opening screens
-        self._press_key('enter')
-        time.sleep(3)
+        # Re-focus window before menu navigation (important for Linux)
+        if self.platform in ["Linux", "Darwin"]:
+            focused = self._ensure_window_focused()
+            if focused:
+                print("✓ Window focused for menu navigation")
+            else:
+                print("✗ Warning: Could not focus window for menu navigation")
+            time.sleep(0.3)
         
-        # Continue
-        self._press_key('enter')
-        time.sleep(0.05)
+        # First screen - Wait for game to fully load after reset
+        print("Pressing Enter (1/3)...")
+        self._press_key('enter', ensure_focus=True)
+        time.sleep(3.5)  # Game needs time to load the first screen
         
-        # Continue
-        self._press_key('enter')
-        time.sleep(0.05)
+        # Second screen
+        print("Pressing Enter (2/3)...")
+        self._press_key('enter', ensure_focus=True)
+        time.sleep(1.5)  # Wait for next screen
         
-        # Final menu navigation
-        self._press_key('x')
-        time.sleep(0.05)
-
-        self._press_key('z')
+        # Third screen
+        print("Pressing Enter (3/3)...")
+        self._press_key('enter', ensure_focus=True)
+        time.sleep(1.5)  # Wait for menu to appear
+        
+        # Navigate menu with X
+        print("Pressing X (menu navigation)...")
+        self._press_key('x', ensure_focus=True)
+        time.sleep(0.8)  # Wait for menu response
+        
+        # Final input with Z
+        print("Pressing Z (final input)...")
+        self._press_key('z', ensure_focus=True)
+        time.sleep(1.0)  # Wait for encounter to load
         
         print("Start menu navigation complete")
