@@ -95,15 +95,11 @@ if __name__ == '__main__':
 
     shiny_hunter.log_function = app.log_message
     
-    # Initialize cross-platform app frame
-    if PYWINAUTO_AVAILABLE:
-        pyApp = Application()
-    else:
-        pyApp = None
-        print("PyWinAuto not available - some features may be limited")
+    # Store the shiny hunter controller in the app for cross-platform access
+    app.shiny_hunter_controller = shiny_hunter
     
     cross_platform_app_frame = CrossPlatformAppFrame(
-        app.right_frame, pyApp, container_frame=root, master=root
+        app.right_frame, app, container_frame=root, master=root
     )
     cross_platform_app_frame.grid(column=1, row=0)
     

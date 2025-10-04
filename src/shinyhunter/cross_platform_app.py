@@ -211,24 +211,15 @@ class CrossPlatformAppFrame(tk.Frame):
     
     def _press_x_key(self):
         """Simulate pressing the X key."""
-        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
-            self.app.shiny_hunter_controller.input_handler._press_key('x')
-        else:
-            print("Error: Shiny hunter controller not available")
+        self.app.shiny_hunter_controller.input_handler._press_key('x')
     
     def _press_z_key(self):
         """Simulate pressing the Z key."""
-        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
-            self.app.shiny_hunter_controller.input_handler._press_key('z')
-        else:
-            print("Error: Shiny hunter controller not available")
+        self.app.shiny_hunter_controller.input_handler._press_key('z')
     
     def _execute_restart_sequence(self):
         """Execute the restart sequence."""
-        if self.app and hasattr(self.app, 'shiny_hunter_controller'):
-            self.app.shiny_hunter_controller.input_handler.restart_sequence()
-        else:
-            print("Error: Shiny hunter controller not available")
+        self.app.shiny_hunter_controller.input_handler.restart_sequence()
 
     def _create_window_area(self):
         """Create the area for embedding or positioning the window."""
