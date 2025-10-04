@@ -239,11 +239,8 @@ class ShinyHuntGUI:
         self.log_message("Now capture a second screenshot to calculate threshold.")
         
         # Enable the calculate button
-        self.calculate_threshold_button.config(state='normal')
+        self.view_correlation_button.config(state='normal')
     
-
-
-
     def _view_correlation(self):
         """View the correlation between reference and current screen for calibration purposes."""
         import time
