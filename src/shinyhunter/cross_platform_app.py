@@ -391,6 +391,9 @@ class CrossPlatformAppFrame(tk.Frame):
                 # Raise the window to be above the main window
                 self.window_manager.raise_window(window_info)
                 
+                # Update screenshot region in config to match boundary
+                self._update_screenshot_region(boundary)
+                
                 # Update visual indicator
                 self._update_boundary_indicator(active=True, window_title=window_info.title)
                 
@@ -495,9 +498,53 @@ class CrossPlatformAppFrame(tk.Frame):
             if boundary:
                 # Reposition the window
                 self.window_manager.position_window_in_boundary(self.selected_window, boundary)
+                
+                # Update screenshot region with new position
+                self._update_screenshot_region(boundary)
+                
                 print("Repositioned companion window after main window moved")
         except Exception as e:
             print(f"Error repositioning companion window: {e}")
+    
+    def _update_screenshot_region(self, boundary: tuple):
+        """Update the screenshot region in config to match the companion boundary.
+        
+        Args:
+            boundary: Tuple of (x, y, width, height)
+        """
+        try:
+            x, y, width, height = boundary
+            
+            # EAFP: Just try to use it - more Pythonic than hasattr checks
+            controller = self.app.shiny_hunter_controller
+            
+            # Update the config values
+            controller.config['screenshot_region']['x'] = x
+            controller.config['screenshot_region']['y'] = y
+            controller.config['screenshot_region']['width'] = width
+            controller.config['screenshot_region']['height'] = height
+            
+            print(f"Updated screenshot region: x={x}, y={y}, width={width}, height={height}")
+            
+            # Try to update UI fields if they exist
+            try:
+                config_frame = controller.config_frame
+                config_frame.x_entry.delete(0, tk.END)
+                config_frame.x_entry.insert(0, str(x))
+                config_frame.y_entry.delete(0, tk.END)
+                config_frame.y_entry.insert(0, str(y))
+                config_frame.width_entry.delete(0, tk.END)
+                config_frame.width_entry.insert(0, str(width))
+                config_frame.height_entry.delete(0, tk.END)
+                config_frame.height_entry.insert(0, str(height))
+                
+                print("Updated config UI fields with screenshot region")
+            except AttributeError:
+                # Config UI doesn't exist or doesn't have these fields - that's okay
+                print("Config UI not available for update")
+                    
+        except (AttributeError, KeyError, TypeError) as e:
+            print(f"Error updating screenshot region: {e}")
     
     def _update_boundary_indicator(self, active: bool = False, window_title: str = ""):
         """Update the boundary indicator visual state."""

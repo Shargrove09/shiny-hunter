@@ -1,6 +1,4 @@
 import time
-import sys
-import os
 from config import ConfigManager
 from image_processor import ImageProcessor
 from input_handler import InputHandler
@@ -57,9 +55,8 @@ class ShinyHunterController:
             if self.paused:
                 time.sleep(0.1)
                 continue
-                
-            self.log('Initializing Shiny Hunt')
-            
+
+            self.log('--- Initializing Shiny Hunt ---')
             # Execute encounter with verification
             if hasattr(self.input_handler, 'encounter_sequence_with_verification'):
                 encounter_success = self.input_handler.encounter_sequence_with_verification(
@@ -83,7 +80,7 @@ class ShinyHunterController:
             # Take screenshot and check for shiny
             screenshot_path = self.screenshot_manager.take_screenshot('current_screenshot.png')
             
-            if self.image_processor.is_shiny_found(self.config.reference_image_path, screenshot_path):
+            if self.image_processor.is_shiny_found(self.config.calibration_reference_path, screenshot_path):
                 self._handle_shiny_found()
                 break
             else:
