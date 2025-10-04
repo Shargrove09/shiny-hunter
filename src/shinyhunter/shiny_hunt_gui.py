@@ -211,7 +211,27 @@ class ShinyHuntGUI:
     
     def _capture_calibration_reference(self):
         """Capture a reference screenshot for calibration."""
+        import time
         config = ConfigManager().get_config()
+        
+        # Try to focus the game window first if cross_platform_app_frame is available
+        if hasattr(self, 'cross_platform_app_frame'):
+            window_info = self.cross_platform_app_frame.get_selected_window_info()
+            
+            if window_info:
+                try:
+                    # Raise and focus the window
+                    window_manager = self.cross_platform_app_frame.window_manager
+                    if window_manager:
+                        self.log_message("Focusing game window...")
+                        window_manager.raise_window(window_info)
+                        window_manager.focus_window(window_info)
+                        # Give the window time to come to front and render
+                        time.sleep(0.5)
+                except Exception as e:
+                    self.log_message(f"Warning: Could not focus window: {e}")
+            else:
+                self.log_message("Warning: No window selected. Screenshot may not capture game window.")
         
         # Take screenshot and save as calibration reference
         screenshot_path = self.screenshot_manager.take_screenshot('calibration_reference.png')
@@ -224,7 +244,25 @@ class ShinyHuntGUI:
     
     def _calculate_threshold(self):
         """Calculate the correlation threshold between reference and current screen."""
+        import time
         config = ConfigManager().get_config()
+        
+        # Try to focus the game window first if cross_platform_app_frame is available
+        if hasattr(self, 'cross_platform_app_frame'):
+            window_info = self.cross_platform_app_frame.get_selected_window_info()
+            
+            if window_info:
+                try:
+                    # Raise and focus the window
+                    window_manager = self.cross_platform_app_frame.window_manager
+                    if window_manager:
+                        self.log_message("Focusing game window...")
+                        window_manager.raise_window(window_info)
+                        window_manager.focus_window(window_info)
+                        # Give the window time to come to front and render
+                        time.sleep(0.5)
+                except Exception as e:
+                    self.log_message(f"Warning: Could not focus window: {e}")
         
         # Take a current screenshot
         current_screenshot = self.screenshot_manager.take_screenshot('calibration_current.png')

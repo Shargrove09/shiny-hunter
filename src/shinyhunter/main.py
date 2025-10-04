@@ -103,6 +103,9 @@ if __name__ == '__main__':
     )
     cross_platform_app_frame.grid(column=1, row=0)
     
+    # Store reference to cross_platform_app_frame in the GUI for window management
+    app.cross_platform_app_frame = cross_platform_app_frame
+    
     # Connect the window manager to the input handler for Linux/macOS
     # This allows the input handler to focus the target window before sending keystrokes
     def update_target_window():
