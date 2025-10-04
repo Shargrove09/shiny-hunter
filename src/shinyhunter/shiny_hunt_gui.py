@@ -242,6 +242,8 @@ class ShinyHuntGUI:
         # Enable the calculate button
         self.calculate_threshold_button.config(state='normal')
     
+    # Don't think this is actually needed anymore since the threshold should just be set directly by the user 
+    # in settings, but leaving for now TODO: Remove if confirmed unnecessary
     def _calculate_threshold(self):
         """Calculate the correlation threshold between reference and current screen."""
         import time

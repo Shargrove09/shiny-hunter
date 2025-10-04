@@ -30,7 +30,6 @@ class ShinyHunterConfig:
     calibration_mode: bool = False  # When True, app is in threshold setup mode
     
     # File paths
-    reference_image_path: str = './images/shiny_mewtwo_ref.png'
     calibration_reference_path: str = './screenshots/calibration_reference.png'
     
     # Safety
