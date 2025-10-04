@@ -228,6 +228,7 @@ class InputHandler:
                 print("✗ Warning: Could not focus window for menu navigation")
             time.sleep(0.3)
         
+        time.sleep(1)  # Initial wait before starting menu navigation
         # First screen - Wait for game to fully load after reset
         print("Pressing Enter (1/3)...")
         self._press_key('enter', ensure_focus=True)
