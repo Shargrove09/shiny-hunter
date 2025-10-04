@@ -65,8 +65,8 @@ class InputHandler:
         """Get platform-specific key mappings."""
         if self.input_method == "pynput":
             return {
-                'x': Key.x,
-                'z': Key.z, 
+                'x': 'x',
+                'z': 'z', 
                 'enter': Key.enter,
                 'backspace': Key.backspace
             }
