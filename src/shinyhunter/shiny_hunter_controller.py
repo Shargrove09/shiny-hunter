@@ -55,9 +55,8 @@ class ShinyHunterController:
             if self.paused:
                 time.sleep(0.1)
                 continue
-
-            self.log('--- Initializing Shiny Hunt ---')
             # Execute encounter with verification
+            self.log("Attempting encounter #{}".format(self.count + 1))
             if hasattr(self.input_handler, 'encounter_sequence_with_verification'):
                 encounter_success = self.input_handler.encounter_sequence_with_verification(
                     self.screenshot_manager, self.image_processor
