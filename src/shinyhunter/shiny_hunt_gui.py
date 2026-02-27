@@ -6,19 +6,21 @@ import sv_ttk
 import os
 from styles import shiny_style
 from screenshot_manager import ScreenshotManager
-from input_handler import InputHandler
 from config import ConfigManager
 
 
 class ShinyHuntGUI:
     def __init__(self, root, input_thread, controller, handle_start, handle_pause, handle_stop):
-        self.input_handler = InputHandler()
+        self.input_handler = controller.input_handler
         
         # Store controller reference
         self.controller = controller
         
         # Create a tkinter variable for displaying the count
         self.count_var = tk.IntVar(value=0)
+        self.calibration_normal_samples = []
+        self.current_input_var = tk.StringVar(value="Now Pressing: —")
+        self._input_clear_after_id = None
         
         ### Styling ###
         sv_ttk.set_theme("dark")
@@ -76,6 +78,13 @@ class ShinyHuntGUI:
             root, text="Press 'Start Hunt' to begin the shiny hunt.", style='status.TLabel')
         self.status_label.grid(row=3, column=1,)
 
+        self.input_indicator_label = ttk.Label(
+            root,
+            textvariable=self.current_input_var,
+            style='status.TLabel'
+        )
+        self.input_indicator_label.grid(row=2, column=1)
+
          # Log Text Widget
         self.log_text = tk.Text(root, height=10, width=50, state='disabled')
         self.log_text.grid(row=4, column=1, padx=20, pady=20, sticky="nsew")
@@ -130,6 +139,9 @@ class ShinyHuntGUI:
         ###################
         ### Right Frame ###
         ###################
+
+        # Hook telemetry from input handler to live UI indicator
+        self.input_handler.set_input_event_callback(self._on_input_event)
     
     def _create_calibration_section(self):
         """Create the threshold calibration section in the left frame."""
@@ -150,7 +162,7 @@ class ShinyHuntGUI:
         # Info label
         self.calibration_info = ttk.Label(
             calibration_frame,
-            text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold below normal",
+            text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold so normal stays above it",
             font=('calibri', 9),
             justify="left"
         )
@@ -174,6 +186,31 @@ class ShinyHuntGUI:
             state='disabled'
         )
         self.view_correlation_button.pack(fill='x', pady=(0, 5))
+
+        self.record_sample_button = ttk.Button(
+            calibration_frame,
+            text="Record Normal Sample",
+            command=self._record_normal_sample,
+            style='standard.TButton',
+            state='disabled'
+        )
+        self.record_sample_button.pack(fill='x', pady=(0, 5))
+
+        self.suggest_threshold_button = ttk.Button(
+            calibration_frame,
+            text="Suggest Threshold",
+            command=self._suggest_threshold_from_samples,
+            style='standard.TButton',
+            state='disabled'
+        )
+        self.suggest_threshold_button.pack(fill='x', pady=(0, 5))
+
+        self.sample_count_label = ttk.Label(
+            calibration_frame,
+            text="Normal samples: 0",
+            font=('calibri', 9)
+        )
+        self.sample_count_label.pack(anchor="w", pady=(0, 5))
         
         # Separator
         ttk.Separator(calibration_frame, orient='horizontal').pack(fill='x', pady=(10, 10))
@@ -244,6 +281,7 @@ class ShinyHuntGUI:
         if config.calibration_mode:
             # Enable calibration buttons and disable hunt
             self.capture_reference_button.config(state='normal')
+            self.record_sample_button.config(state='normal')
             self.start_button.config(state='disabled')
             self.calibration_info.config(
                 text="Calibration Mode Active!\nNavigate to encounter screen,\nthen capture reference.",
@@ -253,9 +291,12 @@ class ShinyHuntGUI:
         else:
             # Disable calibration buttons and enable hunt
             self.capture_reference_button.config(state='disabled')
+            self.view_correlation_button.config(state='disabled')
+            self.record_sample_button.config(state='disabled')
+            self.suggest_threshold_button.config(state='disabled')
             self.start_button.config(state='normal')
             self.calibration_info.config(
-                text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold below normal",
+                text="1. Capture reference (normal)\n2. View correlation\n3. Set threshold so normal stays above it",
                 foreground=''
             )
             self.log_message("Calibration mode disabled. Hunt enabled.")
@@ -286,12 +327,16 @@ class ShinyHuntGUI:
         
         # Take screenshot and save as calibration reference
         screenshot_path = self.screenshot_manager.take_screenshot('calibration_reference.png')
+        self.calibration_normal_samples.clear()
+        self.sample_count_label.config(text="Normal samples: 0")
         
         self.log_message(f"Calibration reference captured: {screenshot_path}")
-        self.log_message("Now capture a second screenshot to calculate threshold.")
+        self.log_message("Now record normal samples, then use Suggest Threshold.")
         
         # Enable the calculate button
         self.view_correlation_button.config(state='normal')
+        self.record_sample_button.config(state='normal')
+        self.suggest_threshold_button.config(state='disabled')
     
     def _view_correlation(self):
         """View the correlation between reference and current screen for calibration purposes."""
@@ -335,15 +380,67 @@ class ShinyHuntGUI:
         
         if correlation > 0.85:
             self.log_message("✅ This appears to be a NORMAL encounter (high correlation)")
-            self.log_message(f"💡 Set your threshold BELOW this value (recommended: ~{correlation * 0.75:.4f})")
+            self.log_message(f"💡 Keep threshold BELOW this value (example: ~{correlation * 0.75:.4f})")
         elif correlation < 0.60:
             self.log_message("🌟 This appears to be DIFFERENT from reference (possible shiny!)")
-            self.log_message(f"💡 Set your threshold ABOVE this value (recommended: ~{correlation * 1.3:.4f})")
+            self.log_message(f"💡 Keep threshold ABOVE this value to catch low-correlation encounters")
         else:
             self.log_message("⚠️  Mid-range correlation - hard to determine")
             self.log_message("💡 Try with more encounters to find a clear pattern")
         
-        self.log_message("\n👉 Go to Settings to manually set your threshold")
+        self.log_message("\n👉 Record normal samples and click Suggest Threshold, or set it manually in Settings")
+
+    def _record_normal_sample(self):
+        """Capture and store one normal encounter correlation sample."""
+        config = ConfigManager().get_config()
+        reference_path = config.calibration_reference_path
+
+        if not os.path.exists(reference_path):
+            self.log_message("Error: Calibration reference not found. Capture reference first.")
+            return
+
+        sample_index = len(self.calibration_normal_samples) + 1
+        screenshot_name = f'calibration_sample_{sample_index}.png'
+        current_screenshot = self.screenshot_manager.take_screenshot(screenshot_name)
+
+        correlation = self.controller.image_processor.get_correlation(
+            reference_path,
+            current_screenshot
+        )
+
+        self.calibration_normal_samples.append(correlation)
+        self.sample_count_label.config(text=f"Normal samples: {len(self.calibration_normal_samples)}")
+        self.suggest_threshold_button.config(state='normal')
+
+        self.log_message(f"✅ Recorded normal sample #{sample_index}: {correlation:.6f}")
+
+    def _suggest_threshold_from_samples(self):
+        """Suggest and apply threshold from recorded normal samples."""
+        if not self.calibration_normal_samples:
+            self.log_message("❌ No normal samples recorded yet.")
+            return
+
+        config_manager = ConfigManager()
+        config = config_manager.get_config()
+
+        suggested_threshold = self.controller.image_processor.suggest_threshold_from_normals(
+            self.calibration_normal_samples,
+            config.correlation_tolerance
+        )
+
+        config.correlation_threshold = suggested_threshold
+        config_manager.save_config()
+
+        self.threshold_entry.delete(0, tk.END)
+        self.threshold_entry.insert(0, f"{suggested_threshold:.6f}")
+        self.threshold_display.config(text=f"Active: {suggested_threshold:.4f}")
+
+        sample_min = min(self.calibration_normal_samples)
+        sample_max = max(self.calibration_normal_samples)
+        self.log_message(
+            f"✅ Suggested threshold applied: {suggested_threshold:.6f} "
+            f"(from {len(self.calibration_normal_samples)} normal samples; range {sample_min:.6f}-{sample_max:.6f})"
+        )
     
     def _update_threshold(self):
         """Update the correlation threshold from the calibration section."""
@@ -358,6 +455,7 @@ class ShinyHuntGUI:
             # Update the config
             config = ConfigManager().get_config()
             config.correlation_threshold = new_threshold
+            ConfigManager().save_config()
             
             # Update the display
             self.threshold_display.config(text=f"Active: {new_threshold:.4f}")
@@ -381,8 +479,10 @@ class ShinyHuntGUI:
             # Update the config
             config = ConfigManager().get_config()
             config.correlation_tolerance = new_tolerance
+            ConfigManager().save_config()
             
             self.log_message(f"✅ Tolerance updated to: {new_tolerance:.6f}")
+            self.log_message("   Effective shiny cutoff = threshold - tolerance")
             
         except ValueError:
             self.log_message("❌ Error: Invalid tolerance value. Please enter a number.")
@@ -436,6 +536,30 @@ class ShinyHuntGUI:
         self.threshold_display.config(text=f"Current: {correlation:.4f}")
         
         self.log_message("Threshold updated! You can disable calibration mode now.")
+
+    def _on_input_event(self, event: dict):
+        """Handle input telemetry events from InputHandler in a thread-safe way."""
+        key_labels = {
+            'x': 'A (X key)',
+            'z': 'B (Z key)',
+            'enter': 'Start (Enter)',
+            'backspace': 'Select (Backspace)'
+        }
+
+        label = key_labels.get(event.get('key'), str(event.get('key')).upper())
+        action = event.get('action', 'press').upper()
+        self.root.after(0, self._update_input_indicator, f"Now Pressing: {label} [{action}]")
+
+    def _update_input_indicator(self, text: str):
+        """Update live input indicator and auto-clear shortly after."""
+        self.current_input_var.set(text)
+        if self._input_clear_after_id is not None:
+            self.root.after_cancel(self._input_clear_after_id)
+        self._input_clear_after_id = self.root.after(450, self._clear_input_indicator)
+
+    def _clear_input_indicator(self):
+        self.current_input_var.set("Now Pressing: —")
+        self._input_clear_after_id = None
 
     ### Methods for GUI Interaction ###
     def log_message(self, message):

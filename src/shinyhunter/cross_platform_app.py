@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Optional, List
 from styles import shiny_style
+from config import ConfigManager
 from window_management import WindowManagerFactory, WindowManager, WindowInfo, EmbeddingMode
 
 
@@ -519,10 +520,11 @@ class CrossPlatformAppFrame(tk.Frame):
             controller = self.app.shiny_hunter_controller
             
             # Update the config values
-            controller.config['screenshot_region']['x'] = x
-            controller.config['screenshot_region']['y'] = y
-            controller.config['screenshot_region']['width'] = width
-            controller.config['screenshot_region']['height'] = height
+            controller.config.screenshot_region_x = x
+            controller.config.screenshot_region_y = y
+            controller.config.emulator_width = width
+            controller.config.emulator_height = height
+            ConfigManager().save_config()
             
             print(f"Updated screenshot region: x={x}, y={y}, width={width}, height={height}")
             

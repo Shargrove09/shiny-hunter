@@ -1,6 +1,7 @@
 import time
 from config import ConfigManager
 import platform
+from typing import Callable, Optional
 
 # Cross-platform input handling
 try:
@@ -22,6 +23,7 @@ class InputHandler:
         self.config = ConfigManager().get_config()
         self.platform = platform.system()
         self.target_window = None  # Reference to target window for focusing
+        self.input_event_callback: Optional[Callable[[dict], None]] = None
         
         # Initialize the appropriate input method
         if PYNPUT_AVAILABLE:
@@ -37,6 +39,29 @@ class InputHandler:
             raise ImportError("No suitable input library available. Please install pynput or pyautogui")
 
         print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
+
+    def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
+        """Set callback for input telemetry events."""
+        self.input_event_callback = callback
+
+    def _emit_input_event(self, key: str, mapped_key, action: str):
+        """Emit input telemetry event if callback is configured."""
+        if not self.input_event_callback:
+            return
+
+        event = {
+            'key': key,
+            'mapped_key': str(mapped_key),
+            'action': action,
+            'timestamp': time.time(),
+            'platform': self.platform,
+            'method': self.input_method,
+        }
+
+        try:
+            self.input_event_callback(event)
+        except Exception as error:
+            print(f"Input event callback error: {error}")
     
     def set_target_window(self, window_info):
         """
@@ -107,6 +132,7 @@ class InputHandler:
         
         key_map = self._get_key_mapping()
         mapped_key = key_map.get(key, key)
+        self._emit_input_event(key, mapped_key, 'press')
         
         if self.input_method == "pynput":
             self.keyboard.press(mapped_key)
@@ -120,6 +146,7 @@ class InputHandler:
         """Cross-platform key down."""
         key_map = self._get_key_mapping()
         mapped_key = key_map.get(key, key)
+        self._emit_input_event(key, mapped_key, 'down')
         
         if self.input_method == "pynput":
             print(f"Key down: {mapped_key}")
@@ -131,6 +158,7 @@ class InputHandler:
         """Cross-platform key up."""
         key_map = self._get_key_mapping()
         mapped_key = key_map.get(key, key)
+        self._emit_input_event(key, mapped_key, 'up')
         
         if self.input_method == "pynput":
             print(f"Key up: {mapped_key}")
@@ -150,7 +178,7 @@ class InputHandler:
 
     def encounter_sequence_with_verification(self, screenshot_manager, image_processor):
         """Execute encounter sequence with verification steps."""
-        max_retries = 3
+        max_retries = self.config.max_encounter_retries
         
         for attempt in range(max_retries):
             # Ensure target window is focused (Linux/macOS)
@@ -175,7 +203,7 @@ class InputHandler:
                 return True
                 
             print(f"Encounter sequence verification failed, attempt {attempt + 1}/{max_retries}")
-            time.sleep(1)  # Wait before retry
+            time.sleep(self.config.verification_delay)  # Wait before retry
             
         return False
     
@@ -242,16 +270,16 @@ class InputHandler:
         # Third screen
         print("Pressing Enter (3/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(2)  # Wait for menu to appear
+        time.sleep(3)  # Wait for menu to appear
         
         # Navigate menu with X
         print("Pressing X (menu navigation)...")
         self._press_key('x', ensure_focus=True)
-        time.sleep(0.8)  # Wait for menu response
+        time.sleep(1)  # Wait for menu response
         
         # Final input with Z
         print("Pressing Z (final input)...")
         self._press_key('z', ensure_focus=True)
-        time.sleep(1.0)  # Wait for encounter to load
+        time.sleep(4.0)  # Wait for encounter to load
         
         print("Start menu navigation complete")

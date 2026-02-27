@@ -1,6 +1,7 @@
 import cv2
 import os
-from typing import Tuple
+from typing import List
+import statistics
 from config import ConfigManager
 
 class ImageProcessor:
@@ -13,7 +14,7 @@ class ImageProcessor:
             return False
             
         # Define template image that should appear on encounter screen
-        encounter_template_path = './images/encounter_screen_template.png'
+        encounter_template_path = self.config.encounter_template_path
         if not os.path.exists(encounter_template_path):
             #TODO: Log warning about missing template 
             return True  # Skip validation if template doesn't exist
@@ -28,7 +29,7 @@ class ImageProcessor:
         result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
         
-        return max_val > 0.8  # Adjust threshold as needed
+        return max_val > self.config.screen_verification_threshold
     
     def is_shiny_found(self, ref_img_path: str, screenshot_path: str) -> bool:
         """Check if a shiny Pokemon is found by comparing reference image to screenshot of current encounter."""
@@ -41,7 +42,15 @@ class ImageProcessor:
             
         correlation = self.get_correlation(ref_img_path, screenshot_path)
         print(f"Correlation: {correlation}")
-        return abs(self.config.correlation_threshold - correlation) > self.config.correlation_tolerance
+        effective_threshold = self.config.correlation_threshold - self.config.correlation_tolerance
+        is_shiny = correlation < effective_threshold
+        print(
+            f"Shiny check: correlation={correlation:.6f}, "
+            f"threshold={self.config.correlation_threshold:.6f}, "
+            f"tolerance={self.config.correlation_tolerance:.6f}, "
+            f"effective_threshold={effective_threshold:.6f}, shiny={is_shiny}"
+        )
+        return is_shiny
     
     def get_correlation(self, ref_img_path: str, screenshot_path: str) -> float:
         """Calculate correlation between reference and screenshot images."""
@@ -65,3 +74,24 @@ class ImageProcessor:
         
         # Compare histograms
         return cv2.compareHist(reference_hist, screenshot_hist, cv2.HISTCMP_CORREL)
+
+    def suggest_threshold_from_normals(self, normal_correlations: List[float], tolerance: float) -> float:
+        """Suggest a threshold from normal encounter correlations.
+
+        Lower correlation means shiny, so threshold should be below normal values.
+        """
+        if not normal_correlations:
+            raise ValueError("At least one normal correlation sample is required")
+
+        clamped = [max(0.0, min(1.0, sample)) for sample in normal_correlations]
+
+        if len(clamped) == 1:
+            return max(0.0, clamped[0] - max(0.03, tolerance * 5))
+
+        mean_value = statistics.mean(clamped)
+        std_dev = statistics.pstdev(clamped)
+
+        # Keep threshold below normal distribution with a guard band.
+        guard_band = max(std_dev * 2.0, tolerance * 5)
+        suggested = mean_value - guard_band
+        return max(0.0, min(1.0, suggested))
