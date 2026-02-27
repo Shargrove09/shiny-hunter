@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from dataclasses import asdict
 from typing import Optional
 import threading
+import json
+import os
 
 @dataclass
 class ShinyHunterConfig:
@@ -31,6 +34,7 @@ class ShinyHunterConfig:
     
     # File paths
     calibration_reference_path: str = './screenshots/calibration_reference.png'
+    encounter_template_path: str = './screenshots/encounter_screen_template.png'
     
     # Safety
     failsafe_enabled: bool = False
@@ -48,17 +52,33 @@ class ConfigManager:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance.config = ShinyHunterConfig()
+                    cls._instance._config_file_path = os.path.join(os.getcwd(), 'shinyhunter_config.json')
+                    cls._instance.load_config()
         return cls._instance
     
     def get_config(self) -> ShinyHunterConfig:
         return self.config
     
+    def load_config(self):
+        """Load configuration from JSON file if it exists."""
+        if not os.path.exists(self._config_file_path):
+            return
+
+        try:
+            with open(self._config_file_path, 'r', encoding='utf-8') as config_file:
+                data = json.load(config_file)
+
+            for key, value in data.items():
+                if hasattr(self.config, key):
+                    setattr(self.config, key, value)
+        except Exception as error:
+            print(f"Failed to load config: {error}")
+
     def save_config(self):
-        """
-        Save configuration to file (placeholder).
-        Currently config is in-memory only.
-        TODO: Implement persistence to JSON or YAML file.
-        """
-        # For now, just log that settings were updated
-        # In the future, this could write to a config.json file
-        print(f"Config updated: threshold={self.config.correlation_threshold}")
+        """Save configuration to a JSON file."""
+        try:
+            with open(self._config_file_path, 'w', encoding='utf-8') as config_file:
+                json.dump(asdict(self.config), config_file, indent=2)
+            print(f"Config updated: threshold={self.config.correlation_threshold}")
+        except Exception as error:
+            print(f"Failed to save config: {error}")

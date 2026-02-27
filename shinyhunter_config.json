@@ -1,0 +1,19 @@
+{
+  "screenshot_region_x": 1180,
+  "screenshot_region_y": 132,
+  "emulator_width": 1290,
+  "emulator_height": 900,
+  "pyautogui_pause": 2.0,
+  "input_pause": 0.7,
+  "encounter_delay": 5.0,
+  "restart_delay": 4.0,
+  "max_encounter_retries": 3,
+  "screen_verification_threshold": 0.8,
+  "verification_delay": 1.0,
+  "correlation_threshold": 0.9990130263374957,
+  "correlation_tolerance": 0.0001,
+  "calibration_mode": true,
+  "calibration_reference_path": "./screenshots/calibration_reference.png",
+  "encounter_template_path": "./screenshots/encounter_screen_template.png",
+  "failsafe_enabled": false
+}
