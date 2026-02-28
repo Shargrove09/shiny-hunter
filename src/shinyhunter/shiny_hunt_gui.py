@@ -21,6 +21,7 @@ class ShinyHuntGUI:
         self.calibration_normal_samples = []
         self.current_input_var = tk.StringVar(value="Now Pressing: —")
         self._input_clear_after_id = None
+        self._count_update_after_id = None
         
         ### Styling ###
         sv_ttk.set_theme("dark")
@@ -142,6 +143,9 @@ class ShinyHuntGUI:
 
         # Hook telemetry from input handler to live UI indicator
         self.input_handler.set_input_event_callback(self._on_input_event)
+
+        # Keep counter label synchronized with controller state
+        self._start_count_sync()
     
     def _create_calibration_section(self):
         """Create the threshold calibration section in the left frame."""
@@ -583,6 +587,24 @@ class ShinyHuntGUI:
         if self.controller:
             self.count_var.set(self.controller.count)
 
+    def _start_count_sync(self):
+        """Start periodic synchronization of the GUI counter with the controller."""
+        self._schedule_count_sync()
+
+    def _schedule_count_sync(self):
+        """Poll controller count and update Tk variable on the UI thread."""
+        if not self.root.winfo_exists():
+            return
+
+        self.update_count()
+        self._count_update_after_id = self.root.after(150, self._schedule_count_sync)
+
+    def _stop_count_sync(self):
+        """Stop periodic counter synchronization."""
+        if self._count_update_after_id is not None and self.root.winfo_exists():
+            self.root.after_cancel(self._count_update_after_id)
+        self._count_update_after_id = None
+
     def toggle_pause(self):
         # TODO: Decide where to store paused state - main or here
 
@@ -599,6 +621,7 @@ class ShinyHuntGUI:
         self.handle_stop()
         self.start_button.config(state="enabled")
         self.status_label.config(text="Mewtwo Hunt stopped.")
+        self.update_count()
 
     def open_settings(self):
         """Open a settings popup window"""
@@ -713,3 +736,6 @@ class ShinyHuntGUI:
         
         cancel_button = ttk.Button(button_frame, text="Cancel", command=cancel_settings, style='standard.TButton')
         cancel_button.pack(side=tk.RIGHT)
+
+    def __del__(self):
+        self._stop_count_sync()
