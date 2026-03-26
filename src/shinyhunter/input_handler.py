@@ -20,6 +20,8 @@ except ImportError:
     PYAUTOGUI_AVAILABLE = False
 
 class InputHandler:
+    _MIN_SLEEP_DURATION = 0.1  # Floor for jittered delays to prevent zero/negative sleeps
+
     def __init__(self):
         self.config = ConfigManager().get_config()
         self.platform = platform.system()
@@ -46,7 +48,7 @@ class InputHandler:
         jitter = self.config.timing_jitter
         if jitter > 0:
             offset = random.uniform(-jitter, jitter)
-            seconds = max(0.1, seconds + offset)
+            seconds = max(self._MIN_SLEEP_DURATION, seconds + offset)
         time.sleep(seconds)
 
     def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
