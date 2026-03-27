@@ -44,11 +44,15 @@ class InputHandler:
         print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
 
     def _jittered_sleep(self, seconds: float):
-        """Sleep with random jitter to prevent RNG lock from fixed timing."""
+        """Sleep with random jitter to prevent RNG lock from fixed timing.
+
+        Jitter only adds time (never subtracts) so the game always has
+        at least the base delay needed for screen transitions.
+        """
         jitter = self.config.timing_jitter
         if jitter > 0:
-            offset = random.uniform(-jitter, jitter)
-            seconds = max(self._MIN_SLEEP_DURATION, seconds + offset)
+            offset = random.uniform(0, jitter)
+            seconds = seconds + offset
         time.sleep(seconds)
 
     def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
