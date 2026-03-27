@@ -18,6 +18,7 @@ class ShinyHunterConfig:
     input_pause: float = 0.7  # Cross-platform input delay (replaces pydirectinput_pause)
     encounter_delay: float = 5.0
     restart_delay: float = 4.0
+    timing_jitter: float = 1.0  # Max random variation (±seconds) added to delays to avoid RNG lock
     
     # New verification settings
     max_encounter_retries: int = 3

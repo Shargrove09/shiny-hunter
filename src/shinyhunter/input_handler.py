@@ -1,4 +1,5 @@
 import time
+import random
 from config import ConfigManager
 import platform
 from typing import Callable, Optional
@@ -19,6 +20,8 @@ except ImportError:
     PYAUTOGUI_AVAILABLE = False
 
 class InputHandler:
+    _MIN_SLEEP_DURATION = 0.1  # Floor for jittered delays to prevent zero/negative sleeps
+
     def __init__(self):
         self.config = ConfigManager().get_config()
         self.platform = platform.system()
@@ -39,6 +42,14 @@ class InputHandler:
             raise ImportError("No suitable input library available. Please install pynput or pyautogui")
 
         print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
+
+    def _jittered_sleep(self, seconds: float):
+        """Sleep with random jitter to prevent RNG lock from fixed timing."""
+        jitter = self.config.timing_jitter
+        if jitter > 0:
+            offset = random.uniform(-jitter, jitter)
+            seconds = max(self._MIN_SLEEP_DURATION, seconds + offset)
+        time.sleep(seconds)
 
     def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
         """Set callback for input telemetry events."""
@@ -174,7 +185,7 @@ class InputHandler:
         
         self._press_key('x')
         self._press_key('x')
-        time.sleep(self.config.encounter_delay)
+        self._jittered_sleep(self.config.encounter_delay)
 
     def encounter_sequence_with_verification(self, screenshot_manager, image_processor):
         """Execute encounter sequence with verification steps."""
@@ -191,10 +202,10 @@ class InputHandler:
             time.sleep(0.25)
             print("PRESSING X")
             self._press_key('x')
-            time.sleep(2)  # Wait for first press to register
+            self._jittered_sleep(2)  # Wait for first press to register
             print("PRESSING X AGAIN")
             self._press_key('x')
-            time.sleep(self.config.encounter_delay)
+            self._jittered_sleep(self.config.encounter_delay)
 
             
             # Verify we reached encounter screen
@@ -238,7 +249,7 @@ class InputHandler:
         
         # Wait for reset to complete
         print("Waiting for game reset...")
-        time.sleep(self.config.restart_delay)
+        self._jittered_sleep(self.config.restart_delay)
         
         # Navigate through start menu
         self._navigate_start_menu()
@@ -260,26 +271,26 @@ class InputHandler:
         # First screen - Wait for game to fully load after reset
         print("Pressing Enter (1/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(3.5)  # Game needs time to load the first screen
+        self._jittered_sleep(3.5)  # Game needs time to load the first screen
         
         # Second screen
         print("Pressing Enter (2/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(2)  # Wait for next screen
+        self._jittered_sleep(2)  # Wait for next screen
         
         # Third screen
         print("Pressing Enter (3/3)...")
         self._press_key('enter', ensure_focus=True)
-        time.sleep(3)  # Wait for menu to appear
+        self._jittered_sleep(3)  # Wait for menu to appear
         
         # Navigate menu with X
         print("Pressing X (menu navigation)...")
         self._press_key('x', ensure_focus=True)
-        time.sleep(1)  # Wait for menu response
+        self._jittered_sleep(1)  # Wait for menu response
         
         # Final input with Z
         print("Pressing Z (final input)...")
         self._press_key('z', ensure_focus=True)
-        time.sleep(4.0)  # Wait for encounter to load
+        self._jittered_sleep(4.0)  # Wait for encounter to load
         
         print("Start menu navigation complete")
