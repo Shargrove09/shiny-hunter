@@ -208,7 +208,7 @@ class InputHandler:
             time.sleep(0.25)
             print("PRESSING X")
             self._press_key('x')
-            self._jittered_sleep(3.5)  # Wait for first press to register
+            self._jittered_sleep(2.5)  # Wait for first press to register
             print("PRESSING X AGAIN")
             self._press_key('x')
             self._jittered_sleep(self.config.encounter_delay)
