@@ -49,10 +49,12 @@ class InputHandler:
         Jitter only adds time (never subtracts) so the game always has
         at least the base delay needed for screen transitions.
         """
+        base = seconds
         jitter = self.config.timing_jitter
         if jitter > 0:
             offset = random.uniform(0, jitter)
             seconds = seconds + offset
+        print(f"[SLEEP] base={base:.2f}s actual={seconds:.2f}s (jitter={jitter})")
         time.sleep(seconds)
 
     def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
