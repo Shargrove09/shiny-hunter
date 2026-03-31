@@ -8,4 +8,5 @@ screenshots/shiny_found*
 *.pyo
 *.pyd
 emulator_screenshot.png
-encounter_screen_template.png 
+encounter_screen_template.png
+.pytest_cache/ 

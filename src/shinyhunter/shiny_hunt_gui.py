@@ -308,29 +308,34 @@ class ShinyHuntGUI:
             )
             self.log_message("Calibration mode disabled. Hunt enabled.")
     
+    def _focus_game_window(self):
+        """Try to focus the game window before taking a screenshot.
+
+        Returns True if focus succeeded or no window management is available.
+        """
+        import time
+        if not hasattr(self, 'cross_platform_app_frame'):
+            return True
+
+        window_info = self.cross_platform_app_frame.get_selected_window_info()
+        if not window_info:
+            self.log_message("Warning: No window selected. Screenshot may not capture game window.")
+            return False
+
+        try:
+            window_manager = self.cross_platform_app_frame.window_manager
+            if window_manager:
+                self.log_message("Focusing game window...")
+                window_manager.raise_window(window_info)
+                window_manager.focus_window(window_info)
+                time.sleep(0.5)
+        except Exception as e:
+            self.log_message(f"Warning: Could not focus window: {e}")
+        return True
+
     def _capture_calibration_reference(self):
         """Capture a reference screenshot for calibration."""
-        import time
-        config = ConfigManager().get_config()
-        
-        # Try to focus the game window first if cross_platform_app_frame is available
-        if hasattr(self, 'cross_platform_app_frame'):
-            window_info = self.cross_platform_app_frame.get_selected_window_info()
-            
-            if window_info:
-                try:
-                    # Raise and focus the window
-                    window_manager = self.cross_platform_app_frame.window_manager
-                    if window_manager:
-                        self.log_message("Focusing game window...")
-                        window_manager.raise_window(window_info)
-                        window_manager.focus_window(window_info)
-                        # Give the window time to come to front and render
-                        time.sleep(0.5)
-                except Exception as e:
-                    self.log_message(f"Warning: Could not focus window: {e}")
-            else:
-                self.log_message("Warning: No window selected. Screenshot may not capture game window.")
+        self._focus_game_window()
         
         # Take screenshot and save as calibration reference
         screenshot_path = self.screenshot_manager.take_screenshot('calibration_reference.png')
@@ -347,22 +352,8 @@ class ShinyHuntGUI:
     
     def _view_correlation(self):
         """View the correlation between reference and current screen for calibration purposes."""
-        import time
         config = ConfigManager().get_config()
-        
-        # Focus window (existing code)
-        if hasattr(self, 'cross_platform_app_frame'):
-            window_info = self.cross_platform_app_frame.get_selected_window_info()
-            if window_info:
-                try:
-                    window_manager = self.cross_platform_app_frame.window_manager
-                    if window_manager:
-                        self.log_message("Focusing game window...")
-                        window_manager.raise_window(window_info)
-                        window_manager.focus_window(window_info)
-                        time.sleep(0.5)
-                except Exception as e:
-                    self.log_message(f"Warning: Could not focus window: {e}")
+        self._focus_game_window()
         
         # Take current screenshot
         current_screenshot = self.screenshot_manager.take_screenshot('calibration_current.png')
@@ -493,56 +484,6 @@ class ShinyHuntGUI:
             
         except ValueError:
             self.log_message("❌ Error: Invalid tolerance value. Please enter a number.")
-
-
-    # Don't think this is actually needed anymore since the threshold should just be set directly by the user 
-    # in settings, but leaving for now TODO: Remove if confirmed unnecessary
-    def _calculate_threshold(self):
-        """Calculate the correlation threshold between reference and current screen."""
-        import time
-        config = ConfigManager().get_config()
-        
-        # Try to focus the game window first if cross_platform_app_frame is available
-        if hasattr(self, 'cross_platform_app_frame'):
-            window_info = self.cross_platform_app_frame.get_selected_window_info()
-            
-            if window_info:
-                try:
-                    # Raise and focus the window
-                    window_manager = self.cross_platform_app_frame.window_manager
-                    if window_manager:
-                        self.log_message("Focusing game window...")
-                        window_manager.raise_window(window_info)
-                        window_manager.focus_window(window_info)
-                        # Give the window time to come to front and render
-                        time.sleep(0.5)
-                except Exception as e:
-                    self.log_message(f"Warning: Could not focus window: {e}")
-        
-        # Take a current screenshot
-        current_screenshot = self.screenshot_manager.take_screenshot('calibration_current.png')
-        
-        # Calculate correlation between calibration reference and current
-        reference_path = config.calibration_reference_path
-        
-        if not os.path.exists(reference_path):
-            self.log_message("Error: Calibration reference not found. Capture reference first.")
-            return
-        
-        # Use the image processor to calculate correlation
-        correlation = self.controller.image_processor.get_correlation(
-            reference_path, 
-            current_screenshot
-        )
-        
-        self.log_message(f"Calculated correlation: {correlation:.6f}")
-        self.log_message(f"Recommended threshold: {correlation:.6f}")
-        
-        # Update the config with the new threshold
-        config.correlation_threshold = correlation
-        self.threshold_display.config(text=f"Current: {correlation:.4f}")
-        
-        self.log_message("Threshold updated! You can disable calibration mode now.")
 
     def _on_input_event(self, event: dict):
         """Handle input telemetry events from InputHandler in a thread-safe way."""
