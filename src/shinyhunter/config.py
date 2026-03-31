@@ -1,9 +1,11 @@
-from dataclasses import dataclass
-from dataclasses import asdict
+from dataclasses import dataclass, asdict
 from typing import Optional
+import logging
 import threading
 import json
 import os
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ShinyHunterConfig:
@@ -73,7 +75,7 @@ class ConfigManager:
                 if hasattr(self.config, key):
                     setattr(self.config, key, value)
         except Exception as error:
-            print(f"Failed to load config: {error}")
+            logger.warning("Failed to load config: %s", error)
 
     def save_config(self):
         """Save configuration to a JSON file."""
@@ -82,4 +84,4 @@ class ConfigManager:
                 json.dump(asdict(self.config), config_file, indent=2)
             print(f"Config updated: threshold={self.config.correlation_threshold}")
         except Exception as error:
-            print(f"Failed to save config: {error}")
+            logger.error("Failed to save config: %s", error)

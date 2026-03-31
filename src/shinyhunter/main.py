@@ -1,7 +1,12 @@
+import logging
 import tkinter as tk
 import threading
 import os
 import sys
+
+from log_config import setup_logging
+
+logger = logging.getLogger(__name__)
 
 # Try to import pyautogui, but handle X11 display errors gracefully on Linux
 PYAUTOGUI_AVAILABLE = True
@@ -10,11 +15,10 @@ try:
 except Exception as e:
     PYAUTOGUI_AVAILABLE = False
     if sys.platform.startswith('linux'):
-        print(f"Warning: pyautogui not available: {e}")
-        print("This is common on Linux systems. The app will use pynput for input handling.")
-        print("For screenshots, please fix X11 authorization (run 'xhost +local:') or install required dependencies. See README.md for details.")
+        logger.warning("pyautogui not available: %s", e)
+        logger.info("This is common on Linux systems. The app will use pynput for input handling.")
     else:
-        print(f"Warning: Could not import pyautogui: {e}")
+        logger.warning("Could not import pyautogui: %s", e)
 
 # Conditional import for Windows-specific functionality
 try:
@@ -29,30 +33,8 @@ from cross_platform_app import CrossPlatformAppFrame
 from shiny_hunter_controller import ShinyHunterController
 from config import ConfigManager
 
-# TODO: Move to .env 
-# Size that screen cap looks at
-emulator_x = 0
-emulator_y = 0
-emulator_width = 2560  # TODO: Make this a setting
-emulator_height = 1440
-
-
-paused = False
-stopped = False
-pause_lock = threading.Lock()
-
 # Global reference to the app frame (set in main)
 cross_platform_app_frame = None
-
-def handle_pause():
-    global paused
-    print("Handling Pause")
-
-    paused = not paused
-
-def stop_hunt():
-    global stopped
-    stopped = not stopped
 
 
 def getHandle():
@@ -66,7 +48,8 @@ def getTitle():
 
 
 if __name__ == '__main__':
-    print("You are going to get so many shinies king.")
+    setup_logging()
+    logger.info("Shiny Hunter starting up...")
     
     # Initialize configuration
     config = ConfigManager().get_config()
@@ -113,7 +96,7 @@ if __name__ == '__main__':
         window_info = cross_platform_app_frame.get_selected_window_info()
         if window_info:
             shiny_hunter.input_handler.set_target_window(window_info)
-            print(f"Updated input handler target window: {window_info.title}")
+            logger.info("Updated input handler target window: %s", window_info.title)
     
     # Store the update function in the cross_platform_app for callback
     cross_platform_app_frame.update_target_window_callback = update_target_window

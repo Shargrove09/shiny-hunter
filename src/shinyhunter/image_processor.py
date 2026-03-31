@@ -1,8 +1,11 @@
+import logging
 import cv2
 import os
 from typing import List
 import statistics
 from config import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 class ImageProcessor:
     def __init__(self):
@@ -16,7 +19,7 @@ class ImageProcessor:
         # Define template image that should appear on encounter screen
         encounter_template_path = self.config.encounter_template_path
         if not os.path.exists(encounter_template_path):
-            #TODO: Log warning about missing template 
+            logger.warning("Encounter template not found at %s, skipping validation", encounter_template_path)
             return True  # Skip validation if template doesn't exist
             
         screenshot = cv2.imread(screenshot_path)
@@ -41,14 +44,14 @@ class ImageProcessor:
             return False
             
         correlation = self.get_correlation(ref_img_path, screenshot_path)
-        print(f"Correlation: {correlation}")
+        logger.info("Correlation: %s", correlation)
         effective_threshold = self.config.correlation_threshold - self.config.correlation_tolerance
         is_shiny = correlation < effective_threshold
-        print(
-            f"Shiny check: correlation={correlation:.6f}, "
-            f"threshold={self.config.correlation_threshold:.6f}, "
-            f"tolerance={self.config.correlation_tolerance:.6f}, "
-            f"effective_threshold={effective_threshold:.6f}, shiny={is_shiny}"
+        logger.info(
+            "Shiny check: correlation=%.6f, threshold=%.6f, tolerance=%.6f, "
+            "effective_threshold=%.6f, shiny=%s",
+            correlation, self.config.correlation_threshold,
+            self.config.correlation_tolerance, effective_threshold, is_shiny,
         )
         return is_shiny
     

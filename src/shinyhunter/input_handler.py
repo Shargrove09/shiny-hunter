@@ -1,8 +1,11 @@
+import logging
 import time
 import random
 from config import ConfigManager
 import platform
 from typing import Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 # Cross-platform input handling
 try:
@@ -32,16 +35,16 @@ class InputHandler:
         if PYNPUT_AVAILABLE:
             self.keyboard = KeyboardController()
             self.input_method = "pynput"
-            print("Using pynput for cross-platform input handling")
+            logger.info("Using pynput for cross-platform input handling")
         elif PYAUTOGUI_AVAILABLE:
             self.input_method = "pyautogui"
             pyautogui.PAUSE = self.config.pyautogui_pause
             pyautogui.FAILSAFE = self.config.failsafe_enabled
-            print("Using pyautogui as fallback input method")
+            logger.info("Using pyautogui as fallback input method")
         else:
             raise ImportError("No suitable input library available. Please install pynput or pyautogui")
 
-        print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
+        logger.info("InputHandler initialized for %s using %s", self.platform, self.input_method)
 
     def _jittered_sleep(self, seconds: float):
         """Sleep with random jitter to prevent RNG lock from fixed timing.
@@ -54,7 +57,7 @@ class InputHandler:
         if jitter > 0:
             offset = random.uniform(0, jitter)
             seconds = seconds + offset
-        print(f"[SLEEP] base={base:.2f}s actual={seconds:.2f}s (jitter={jitter})")
+        logger.debug("[SLEEP] base=%.2fs actual=%.2fs (jitter=%s)", base, seconds, jitter)
         time.sleep(seconds)
 
     def set_input_event_callback(self, callback: Optional[Callable[[dict], None]]):
@@ -78,7 +81,7 @@ class InputHandler:
         try:
             self.input_event_callback(event)
         except Exception as error:
-            print(f"Input event callback error: {error}")
+            logger.warning("Input event callback error: %s", error)
     
     def set_target_window(self, window_info):
         """
@@ -88,12 +91,12 @@ class InputHandler:
             window_info: WindowInfo object from window_management
         """
         self.target_window = window_info
-        print(f"Target window set to: {window_info.title if window_info else 'None'}")
+        logger.info("Target window set to: %s", window_info.title if window_info else 'None')
     
     def _ensure_window_focused(self):
         """Ensure the target window has focus before sending keystrokes."""
         if not self.target_window:
-            print("Warning: No target window set")
+            logger.warning("No target window set")
             return False
             
         if hasattr(self.target_window, 'handle') and hasattr(self.target_window.handle, 'activate'):
@@ -103,7 +106,7 @@ class InputHandler:
                 time.sleep(0.2)  # Increased delay to ensure focus is set
                 return True
             except Exception as e:
-                print(f"Warning: Could not focus target window: {e}")
+                logger.warning("Could not focus target window: %s", e)
                 return False
         elif hasattr(self.target_window, 'focus'):
             try:
@@ -112,10 +115,10 @@ class InputHandler:
                 time.sleep(0.2)
                 return True
             except Exception as e:
-                print(f"Warning: Could not focus target window (alternative method): {e}")
+                logger.warning("Could not focus target window (alternative method): %s", e)
                 return False
         else:
-            print("Warning: Target window does not support focusing")
+            logger.warning("Target window does not support focusing")
             return False
     
     def _get_key_mapping(self):
@@ -166,7 +169,7 @@ class InputHandler:
         self._emit_input_event(key, mapped_key, 'down')
         
         if self.input_method == "pynput":
-            print(f"Key down: {mapped_key}")
+            logger.debug("Key down: %s", mapped_key)
             self.keyboard.press(mapped_key)
         else:  # pyautogui fallback
             pyautogui.keyDown(mapped_key)
@@ -178,7 +181,7 @@ class InputHandler:
         self._emit_input_event(key, mapped_key, 'up')
         
         if self.input_method == "pynput":
-            print(f"Key up: {mapped_key}")
+            logger.debug("Key up: %s", mapped_key)
             self.keyboard.release(mapped_key)
         else:  # pyautogui fallback
             pyautogui.keyUp(mapped_key)
@@ -202,14 +205,14 @@ class InputHandler:
             if self.platform in ["Linux", "Darwin"]:
                 focused = self._ensure_window_focused()
                 if not focused:
-                    print(f"Warning: Target window may not be focused")
+                    logger.warning("Target window may not be focused")
             
             # Execute encounter
             time.sleep(0.25)
-            print("PRESSING X")
+            logger.debug("Pressing X")
             self._press_key('x')
             self._jittered_sleep(2.5)  # Wait for first press to register
-            print("PRESSING X AGAIN")
+            logger.debug("Pressing X again")
             self._press_key('x')
             self._jittered_sleep(self.config.encounter_delay)
 
@@ -219,7 +222,7 @@ class InputHandler:
             if image_processor.is_on_encounter_screen(screenshot_path):
                 return True
                 
-            print(f"Encounter sequence verification failed, attempt {attempt + 1}/{max_retries}")
+            logger.warning("Encounter verification failed, attempt %d/%d", attempt + 1, max_retries)
             time.sleep(self.config.verification_delay)  # Wait before retry
             
         return False
@@ -227,19 +230,19 @@ class InputHandler:
     
     def restart_sequence(self):
         """Execute the restart sequence."""
-        print("Starting restart sequence...")
+        logger.info("Starting restart sequence...")
         
         # Ensure target window is focused (Linux/macOS)
         if self.platform in ["Linux", "Darwin"]:
             focused = self._ensure_window_focused()
             if not focused:
-                print("Warning: Could not focus target window for restart")
+                logger.warning("Could not focus target window for restart")
             time.sleep(0.3)  # Give window time to focus
         
         # Restart Sequence - (A + B + Start + Select) - All pressed simultaneously
         keys = ['backspace', 'enter', 'x', 'z']
         
-        print("Pressing reset combination (A+B+Start+Select)...")
+        logger.debug("Pressing reset combination (A+B+Start+Select)...")
         # Press all keys down
         for key in keys:
             self._key_down(key)
@@ -254,7 +257,7 @@ class InputHandler:
             time.sleep(0.02)  # Small delay between each key release
         
         # Wait for reset to complete
-        print("Waiting for game reset...")
+        logger.debug("Waiting for game reset...")
         self._jittered_sleep(self.config.restart_delay)
         
         # Navigate through start menu
@@ -262,41 +265,41 @@ class InputHandler:
     
     def _navigate_start_menu(self):
         """Navigate through the FRLG start menu."""
-        print("Navigating start menu...")
+        logger.debug("Navigating start menu...")
         
         # Re-focus window before menu navigation (important for Linux)
         if self.platform in ["Linux", "Darwin"]:
             focused = self._ensure_window_focused()
             if focused:
-                print("✓ Window focused for menu navigation")
+                logger.debug("Window focused for menu navigation")
             else:
-                print("✗ Warning: Could not focus window for menu navigation")
+                logger.warning("Could not focus window for menu navigation")
             time.sleep(0.3)
         
         time.sleep(1)  # Initial wait before starting menu navigation
         # First screen - Wait for game to fully load after reset
-        print("Pressing Enter (1/3)...")
+        logger.debug("Pressing Enter (1/3)...")
         self._press_key('enter', ensure_focus=True)
         self._jittered_sleep(3.5)  # Game needs time to load the first screen
         
         # Second screen
-        print("Pressing Enter (2/3)...")
+        logger.debug("Pressing Enter (2/3)...")
         self._press_key('enter', ensure_focus=True)
         self._jittered_sleep(2)  # Wait for next screen
         
         # Third screen
-        print("Pressing Enter (3/3)...")
+        logger.debug("Pressing Enter (3/3)...")
         self._press_key('enter', ensure_focus=True)
         self._jittered_sleep(3)  # Wait for menu to appear
         
         # Navigate menu with X
-        print("Pressing X (menu navigation)...")
+        logger.debug("Pressing X (menu navigation)...")
         self._press_key('x', ensure_focus=True)
         self._jittered_sleep(1)  # Wait for menu response
         
         # Final input with Z
-        print("Pressing Z (final input)...")
+        logger.debug("Pressing Z (final input)...")
         self._press_key('z', ensure_focus=True)
         self._jittered_sleep(4.0)  # Wait for encounter to load
         
-        print("Start menu navigation complete")
+        logger.debug("Start menu navigation complete")

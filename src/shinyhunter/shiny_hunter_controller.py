@@ -1,9 +1,11 @@
+import logging
 import time
 from config import ConfigManager
 from image_processor import ImageProcessor
 from input_handler import InputHandler
 from screenshot_manager import ScreenshotManager
-import tkinter as tk
+
+logger = logging.getLogger(__name__)
 
 # pyautogui is not needed in this module - removed unused import
 
@@ -40,7 +42,7 @@ class ShinyHunterController:
         """Log message if log function is available."""
         if self.log_function:
             self.log_function(message)
-        print(message)
+        logger.info(message)
     
     def countdown(self, seconds: int):
         """Countdown before starting hunt."""
@@ -61,7 +63,7 @@ class ShinyHunterController:
                 encounter_success = self.input_handler.encounter_sequence_with_verification(
                     self.screenshot_manager, self.image_processor
                 )
-                print(f"Encounter success: {encounter_success}")
+                logger.info("Encounter success: %s", encounter_success)
                 if not encounter_success:
                     self.log('Failed to reach encounter screen, restarting...')
                     self.input_handler.restart_sequence()

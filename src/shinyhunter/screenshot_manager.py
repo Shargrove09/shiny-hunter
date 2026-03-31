@@ -1,7 +1,10 @@
+import logging
 import os
 import sys
 from datetime import datetime
 from config import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 # Try to import screenshot libraries with graceful fallback
 SCREENSHOT_METHOD = None
@@ -11,16 +14,16 @@ try:
     SCREENSHOT_METHOD = "pyautogui"
 except Exception as e:
     if sys.platform.startswith('linux'):
-        print(f"Warning: pyautogui not available on Linux: {e}")
-        print("Attempting to use PIL/Pillow for screenshots...")
+        logger.warning("pyautogui not available on Linux: %s", e)
+        logger.info("Attempting to use PIL/Pillow for screenshots...")
     
     try:
         from PIL import ImageGrab
         SCREENSHOT_METHOD = "pil"
-        print("Using PIL/Pillow for screenshots")
+        logger.info("Using PIL/Pillow for screenshots")
     except ImportError:
-        print("Warning: No screenshot library available")
-        print("Please fix X11 authorization or install required dependencies")
+        logger.warning("No screenshot library available")
+        logger.info("Please fix X11 authorization or install required dependencies")
         SCREENSHOT_METHOD = None
 
 class ScreenshotManager:

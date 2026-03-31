@@ -1,3 +1,4 @@
+import logging
 import tkinter as tk
 from tkinter import ttk, filedialog
 from threading import Thread
@@ -7,6 +8,8 @@ import os
 from styles import shiny_style
 from screenshot_manager import ScreenshotManager
 from config import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 
 class ShinyHuntGUI:
@@ -617,7 +620,7 @@ class ShinyHuntGUI:
 
 
     def stop_hunt(self):
-        print('Stopping Hunt')
+        logger.info("Stopping Hunt")
         self.handle_stop()
         self.start_button.config(state="enabled")
         self.status_label.config(text="Mewtwo Hunt stopped.")

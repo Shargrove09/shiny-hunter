@@ -1,0 +1,27 @@
+[project]
+name = "shiny-hunter"
+version = "0.2.0"
+description = "Automated Pokémon shiny hunting with computer vision detection"
+requires-python = ">=3.10"
+dependencies = [
+    "Pillow>=11.2.1",
+    "pyautogui>=0.9.54",
+    "pynput>=1.7.0",
+    "pygetwindow>=0.0.9",
+    "PyWinCtl>=0.4.0",
+    "sv_ttk>=2.6.0",
+    "opencv-python>=4.11.0.86",
+]
+
+[project.optional-dependencies]
+windows = [
+    "pywinauto>=0.6.9",
+    "pywin32>=310",
+]
+dev = [
+    "pytest>=7.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src/shinyhunter"]
