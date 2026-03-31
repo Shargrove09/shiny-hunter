@@ -2,11 +2,14 @@
 Factory for creating the appropriate window manager based on platform and available libraries.
 """
 
+import logging
 import platform
 from typing import Optional
 from .base import WindowManager
 from .pywinctl_manager import PyWinCtlManager
 from .fallback_manager import FallbackManager
+
+logger = logging.getLogger(__name__)
 
 
 class WindowManagerFactory:
@@ -59,10 +62,10 @@ class WindowManagerFactory:
             elif manager_type.lower() == 'fallback':
                 return FallbackManager()
             else:
-                print(f"Unknown manager type: {manager_type}")
+                logger.warning("Unknown manager type: %s", manager_type)
                 return None
         except ImportError as e:
-            print(f"Failed to create {manager_type} manager: {e}")
+            logger.error("Failed to create %s manager: %s", manager_type, e)
             return None
     
     @staticmethod

@@ -2,8 +2,11 @@
 PyWinCtl-based window manager implementation.
 """
 
+import logging
 from typing import List, Optional, Any
 from .base import WindowManager, WindowInfo, EmbeddingMode
+
+logger = logging.getLogger(__name__)
 
 # PyWinCtl imports with fallback
 try:
@@ -37,9 +40,9 @@ class PyWinCtlManager(WindowManager):
         self.use_win32_embedding = (self.platform == "Windows" and WIN32_AVAILABLE)
         self._embedded_windows = {}  # Track embedded windows
         
-        print(f"PyWinCtlManager initialized for {self.platform}")
+        logger.info("PyWinCtlManager initialized for %s", self.platform)
         if self.use_win32_embedding:
-            print("Using Win32 API for advanced embedding features")
+            logger.info("Using Win32 API for advanced embedding features")
     
     def get_all_windows(self) -> List[WindowInfo]:
         """Get information about all available windows using PyWinCtl."""
@@ -47,8 +50,8 @@ class PyWinCtlManager(WindowManager):
         
         try:
             pywinctl_windows = pywinctl.getAllWindows()
-            print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
-            print(f"Sample window titles: {[w.title for w in pywinctl_windows[:5]]}")
+            logger.debug("Found %d windows via PyWinCtl", len(pywinctl_windows))
+            logger.debug("Sample window titles: %s", [w.title for w in pywinctl_windows[:5]])
             for window in pywinctl_windows:
                 try:
                     # Filter out windows without titles or that are not visible
@@ -73,7 +76,7 @@ class PyWinCtlManager(WindowManager):
                     continue
                     
         except Exception as e:
-            print(f"Error enumerating windows: {e}")
+            logger.error("Error enumerating windows: %s", e)
             
         return windows
     
@@ -95,7 +98,7 @@ class PyWinCtlManager(WindowManager):
                     is_minimized=window.isMinimized
                 )
         except Exception as e:
-            print(f"Error finding window by title '{title}': {e}")
+            logger.error("Error finding window by title '%s': %s", title, e)
             
         return None
     
@@ -115,7 +118,7 @@ class PyWinCtlManager(WindowManager):
                     is_minimized=handle.isMinimized
                 )
         except Exception as e:
-            print(f"Error getting window info by handle: {e}")
+            logger.error("Error getting window info by handle: %s", e)
             
         return None
     
@@ -127,7 +130,7 @@ class PyWinCtlManager(WindowManager):
             else:
                 return self._embed_window_fallback(window_info, parent_widget)
         except Exception as e:
-            print(f"Error embedding window: {e}")
+            logger.error("Error embedding window: %s", e)
             return False
     
     def _embed_window_win32(self, window_info: WindowInfo, parent_widget: Any) -> bool:
@@ -146,7 +149,7 @@ class PyWinCtlManager(WindowManager):
                 win32_handle = win32gui.FindWindow(None, window_info.title)
                 
             if not win32_handle:
-                print(f"Could not get Win32 handle for window: {window_info.title}")
+                logger.error("Could not get Win32 handle for window: %s", window_info.title)
                 return False
             
             # Capture the original parent before reparenting
@@ -172,11 +175,11 @@ class PyWinCtlManager(WindowManager):
                 'original_parent': original_parent
             }
             
-            print(f"Successfully embedded window: {window_info.title}")
+            logger.info("Successfully embedded window: %s", window_info.title)
             return True
             
         except Exception as e:
-            print(f"Win32 embedding failed: {e}")
+            logger.error("Win32 embedding failed: %s", e)
             return False
     
     def _embed_window_fallback(self, window_info: WindowInfo, parent_widget: Any) -> bool:
@@ -195,11 +198,11 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.moveTo(new_x, new_y)
             pywinctl_window.activate()
             
-            print(f"Positioned window beside parent: {window_info.title}")
+            logger.info("Positioned window beside parent: %s", window_info.title)
             return True
             
         except Exception as e:
-            print(f"Fallback positioning failed: {e}")
+            logger.error("Fallback positioning failed: %s", e)
             return False
     
     def unembed_window(self, window_info: WindowInfo) -> bool:
@@ -210,7 +213,7 @@ class PyWinCtlManager(WindowManager):
             else:
                 return self._unembed_window_fallback(window_info)
         except Exception as e:
-            print(f"Error unembedding window: {e}")
+            logger.error("Error unembedding window: %s", e)
             return False
     
     def _unembed_window_win32(self, window_info: WindowInfo) -> bool:
@@ -232,11 +235,11 @@ class PyWinCtlManager(WindowManager):
             # Remove from tracking
             del self._embedded_windows[window_info.title]
             
-            print(f"Successfully unembedded window: {window_info.title}")
+            logger.info("Successfully unembedded window: %s", window_info.title)
             return True
             
         except Exception as e:
-            print(f"Win32 unembedding failed: {e}")
+            logger.error("Win32 unembedding failed: %s", e)
             return False
     
     def _unembed_window_fallback(self, window_info: WindowInfo) -> bool:
@@ -246,7 +249,7 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.activate()
             return True
         except Exception as e:
-            print(f"Fallback unembedding failed: {e}")
+            logger.error("Fallback unembedding failed: %s", e)
             return False
     
     def position_window_beside(self, window_info: WindowInfo, reference_window: Any) -> bool:
@@ -267,7 +270,7 @@ class PyWinCtlManager(WindowManager):
             return True
             
         except Exception as e:
-            print(f"Error positioning window: {e}")
+            logger.error("Error positioning window: %s", e)
             return False
     
     def position_window_in_boundary(self, window_info: WindowInfo, boundary: tuple) -> bool:
@@ -291,11 +294,11 @@ class PyWinCtlManager(WindowManager):
             # Then move it to the boundary position
             pywinctl_window.moveTo(x, y)
             
-            print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
+            logger.info("Positioned window in boundary: (%d, %d, %d, %d)", x, y, width, height)
             return True
             
         except Exception as e:
-            print(f"Error positioning window in boundary: {e}")
+            logger.error("Error positioning window in boundary: %s", e)
             return False
     
     def raise_window(self, window_info: WindowInfo) -> bool:
@@ -306,7 +309,7 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.activate()
             return True
         except Exception as e:
-            print(f"Error raising window: {e}")
+            logger.error("Error raising window: %s", e)
             return False
     
     def focus_window(self, window_info: WindowInfo) -> bool:
@@ -316,7 +319,7 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.activate()
             return True
         except Exception as e:
-            print(f"Error focusing window: {e}")
+            logger.error("Error focusing window: %s", e)
             return False
     
     def resize_window(self, window_info: WindowInfo, width: int, height: int) -> bool:
@@ -326,7 +329,7 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.resizeTo(width, height)
             return True
         except Exception as e:
-            print(f"Error resizing window: {e}")
+            logger.error("Error resizing window: %s", e)
             return False
     
     def move_window(self, window_info: WindowInfo, x: int, y: int) -> bool:
@@ -336,5 +339,5 @@ class PyWinCtlManager(WindowManager):
             pywinctl_window.moveTo(x, y)
             return True
         except Exception as e:
-            print(f"Error moving window: {e}")
+            logger.error("Error moving window: %s", e)
             return False

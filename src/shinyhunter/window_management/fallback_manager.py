@@ -2,8 +2,11 @@
 Fallback window manager using pygetwindow for basic functionality.
 """
 
+import logging
 from typing import List, Optional, Any
 from .base import WindowManager, WindowInfo, EmbeddingMode
+
+logger = logging.getLogger(__name__)
 
 try:
     import pygetwindow as gw
@@ -30,7 +33,7 @@ class FallbackManager(WindowManager):
         # Fallback manager only supports manual mode
         self.embedding_mode = EmbeddingMode.MANUAL
         
-        print(f"FallbackManager initialized for {self.platform} (manual mode only)")
+        logger.info("FallbackManager initialized for %s (manual mode only)", self.platform)
     
     def get_all_windows(self) -> List[WindowInfo]:
         """Get information about all available windows using pygetwindow."""
@@ -59,10 +62,10 @@ class FallbackManager(WindowManager):
                         windows.append(window_info)
                         
                 except Exception as e:
-                    print(f"Skipping window '{title}' due to error: {e}")
+                    logger.debug("Skipping window '%s' due to error: %s", title, e)
                     continue                    
         except Exception as e:
-            print(f"Error enumerating windows with pygetwindow: {e}")
+            logger.error("Error enumerating windows with pygetwindow: %s", e)
             
         return windows
     
@@ -81,7 +84,7 @@ class FallbackManager(WindowManager):
                     is_minimized=window.isMinimized
                 )
         except Exception as e:
-            print(f"Error finding window by title '{title}': {e}")
+            logger.error("Error finding window by title '%s': %s", title, e)
             
         return None
     
@@ -98,18 +101,18 @@ class FallbackManager(WindowManager):
                     is_minimized=handle.isMinimized
                 )
         except Exception as e:
-            print(f"Error getting window info by handle: {e}")
+            logger.error("Error getting window info by handle: %s", e)
             
         return None
     
     def embed_window(self, window_info: WindowInfo, parent_widget: Any) -> bool:
         """Embedding not supported in fallback manager."""
-        print("Window embedding not supported in fallback mode")
+        logger.warning("Window embedding not supported in fallback mode")
         return False
     
     def unembed_window(self, window_info: WindowInfo) -> bool:
         """Unembedding not supported in fallback manager."""
-        print("Window unembedding not supported in fallback mode")
+        logger.warning("Window unembedding not supported in fallback mode")
         return False
     
     def position_window_beside(self, window_info: WindowInfo, reference_window: Any) -> bool:
@@ -130,7 +133,7 @@ class FallbackManager(WindowManager):
             return True
             
         except Exception as e:
-            print(f"Error positioning window: {e}")
+            logger.error("Error positioning window: %s", e)
             return False
     
     def position_window_in_boundary(self, window_info: WindowInfo, boundary: tuple) -> bool:
@@ -154,11 +157,11 @@ class FallbackManager(WindowManager):
             # Then move it to the boundary position
             gw_window.moveTo(x, y)
             
-            print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
+            logger.info("Positioned window in boundary: (%d, %d, %d, %d)", x, y, width, height)
             return True
             
         except Exception as e:
-            print(f"Error positioning window in boundary: {e}")
+            logger.error("Error positioning window in boundary: %s", e)
             return False
     
     def raise_window(self, window_info: WindowInfo) -> bool:
@@ -169,7 +172,7 @@ class FallbackManager(WindowManager):
             gw_window.activate()
             return True
         except Exception as e:
-            print(f"Error raising window: {e}")
+            logger.error("Error raising window: %s", e)
             return False
     
     def focus_window(self, window_info: WindowInfo) -> bool:
@@ -179,7 +182,7 @@ class FallbackManager(WindowManager):
             gw_window.activate()
             return True
         except Exception as e:
-            print(f"Error focusing window: {e}")
+            logger.error("Error focusing window: %s", e)
             return False
     
     def resize_window(self, window_info: WindowInfo, width: int, height: int) -> bool:
@@ -189,7 +192,7 @@ class FallbackManager(WindowManager):
             gw_window.resizeTo(width, height)
             return True
         except Exception as e:
-            print(f"Error resizing window: {e}")
+            logger.error("Error resizing window: %s", e)
             return False
     
     def move_window(self, window_info: WindowInfo, x: int, y: int) -> bool:
@@ -199,7 +202,7 @@ class FallbackManager(WindowManager):
             gw_window.moveTo(x, y)
             return True
         except Exception as e:
-            print(f"Error moving window: {e}")
+            logger.error("Error moving window: %s", e)
             return False
     
     def get_capabilities(self) -> dict:
