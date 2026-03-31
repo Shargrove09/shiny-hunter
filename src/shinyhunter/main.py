@@ -17,6 +17,7 @@ except Exception as e:
     if sys.platform.startswith('linux'):
         logger.warning("pyautogui not available: %s", e)
         logger.info("This is common on Linux systems. The app will use pynput for input handling.")
+        logger.info("For screenshots, fix X11 authorization (run 'xhost +local:') or see README.md.")
     else:
         logger.warning("Could not import pyautogui: %s", e)
 
