@@ -82,6 +82,6 @@ class ConfigManager:
         try:
             with open(self._config_file_path, 'w', encoding='utf-8') as config_file:
                 json.dump(asdict(self.config), config_file, indent=2)
-            print(f"Config updated: threshold={self.config.correlation_threshold}")
+            logger.info("Config updated: threshold=%s", self.config.correlation_threshold)
         except Exception as error:
             logger.error("Failed to save config: %s", error)
