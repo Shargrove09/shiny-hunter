@@ -5,12 +5,15 @@ This module replaces the Windows-specific embedded_app.py with a cross-platform 
 that adapts its functionality based on the available window management capabilities.
 """
 
+import logging
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional, List
 from styles import shiny_style
 from config import ConfigManager
 from window_management import WindowManagerFactory, WindowManager, WindowInfo, EmbeddingMode
+
+logger = logging.getLogger(__name__)
 
 
 class CrossPlatformAppFrame(tk.Frame):
@@ -31,7 +34,7 @@ class CrossPlatformAppFrame(tk.Frame):
             self.embedding_mode = self.window_manager.get_embedding_mode()
             self.capabilities = self.window_manager.get_capabilities()
         except ImportError as e:
-            print(f"Window manager initialization failed: {e}")
+            logger.error("Window manager initialization failed: %s", e)
             self.window_manager = None
             self.embedding_mode = EmbeddingMode.MANUAL
             self.capabilities = {}
@@ -54,7 +57,7 @@ class CrossPlatformAppFrame(tk.Frame):
         if master:
             master.protocol("WM_DELETE_WINDOW", self._cleanup_on_close)
         
-        print(f"CrossPlatformAppFrame initialized with {self.embedding_mode.value} mode")
+        logger.info("CrossPlatformAppFrame initialized with %s mode", self.embedding_mode.value)
     
     def _create_ui(self):
         """Create the user interface adapted to current capabilities."""
@@ -294,7 +297,7 @@ class CrossPlatformAppFrame(tk.Frame):
             self._update_status("Window list refreshed")
             
         except Exception as e:
-            print(f"Error refreshing windows: {e}")
+            logger.error("Error refreshing windows: %s", e)
             self.dropdown['values'] = ["Error loading windows"]
             self._update_status("Error refreshing windows")
     
@@ -336,12 +339,12 @@ class CrossPlatformAppFrame(tk.Frame):
                     try:
                         self.app.connect(handle=window_info.handle._hWnd)
                     except Exception as e:
-                        print(f"App connection failed: {e}")
+                        logger.error("App connection failed: %s", e)
             else:
                 self._update_status(f"Failed to embed: {window_info.title}")
                 
         except Exception as e:
-            print(f"Embedding error: {e}")
+            logger.error("Embedding error: %s", e)
             self._update_status("Embedding failed")
     
     def _unembed_window(self):
@@ -364,7 +367,7 @@ class CrossPlatformAppFrame(tk.Frame):
                 self._update_status("Failed to unembed window")
                 
         except Exception as e:
-            print(f"Unembedding error: {e}")
+            logger.error("Unembedding error: %s", e)
             self._update_status("Unembedding failed")
     
     def _position_window(self):
@@ -421,7 +424,7 @@ class CrossPlatformAppFrame(tk.Frame):
                 self._update_status(f"Failed to position: {window_info.title}")
                 
         except Exception as e:
-            print(f"Positioning error: {e}")
+            logger.error("Positioning error: %s", e)
             self._update_status("Positioning failed")
     
     def _calculate_companion_boundary(self) -> tuple:
@@ -447,17 +450,17 @@ class CrossPlatformAppFrame(tk.Frame):
             # Verify the boundary fits within the screen
             # Add some validation to ensure we have valid coordinates
             if x <= 0 or y <= 0:
-                print(f"Warning: Boundary has invalid position ({x}, {y}), waiting for frame to be ready")
+                logger.warning("Boundary has invalid position (%s, %s), waiting for frame to be ready", x, y)
                 # Try to update again
                 self.master.update()
                 x = self.boundary_indicator.winfo_rootx()
                 y = self.boundary_indicator.winfo_rooty()
             
-            print(f"Calculated companion boundary: ({x}, {y}, {width}, {height})")
+            logger.debug("Calculated companion boundary: (%s, %s, %s, %s)", x, y, width, height)
             return (x, y, width, height)
             
         except Exception as e:
-            print(f"Error calculating boundary: {e}")
+            logger.error("Error calculating boundary: %s", e)
             return None
     
     def _setup_focus_tracking(self):
@@ -473,7 +476,7 @@ class CrossPlatformAppFrame(tk.Frame):
                 try:
                     self.window_manager.raise_window(self.selected_window)
                 except Exception as e:
-                    print(f"Error raising window on focus: {e}")
+                    logger.error("Error raising window on focus: %s", e)
         
         # Bind configure events to reposition window when main window moves
         def on_configure(event):
@@ -485,7 +488,7 @@ class CrossPlatformAppFrame(tk.Frame):
         if self.master:
             self.master.bind("<FocusIn>", on_focus_in)
             self.master.bind("<Configure>", on_configure)
-            print("Focus tracking and reposition on move enabled for companion window")
+            logger.info("Focus tracking and reposition on move enabled for companion window")
     
     def _reposition_companion_window(self):
         """Reposition the companion window to match the current boundary."""
@@ -503,9 +506,9 @@ class CrossPlatformAppFrame(tk.Frame):
                 # Update screenshot region with new position
                 self._update_screenshot_region(boundary)
                 
-                print("Repositioned companion window after main window moved")
+                logger.debug("Repositioned companion window after main window moved")
         except Exception as e:
-            print(f"Error repositioning companion window: {e}")
+            logger.error("Error repositioning companion window: %s", e)
     
     def _update_screenshot_region(self, boundary: tuple):
         """Update the screenshot region in config to match the companion boundary.
@@ -526,7 +529,7 @@ class CrossPlatformAppFrame(tk.Frame):
             controller.config.emulator_height = height
             ConfigManager().save_config()
             
-            print(f"Updated screenshot region: x={x}, y={y}, width={width}, height={height}")
+            logger.info("Updated screenshot region: x=%s, y=%s, width=%s, height=%s", x, y, width, height)
             
             # Try to update UI fields if they exist
             try:
@@ -540,13 +543,13 @@ class CrossPlatformAppFrame(tk.Frame):
                 config_frame.height_entry.delete(0, tk.END)
                 config_frame.height_entry.insert(0, str(height))
                 
-                print("Updated config UI fields with screenshot region")
+                logger.debug("Updated config UI fields with screenshot region")
             except AttributeError:
                 # Config UI doesn't exist or doesn't have these fields - that's okay
-                print("Config UI not available for update")
+                logger.debug("Config UI not available for update")
                     
         except (AttributeError, KeyError, TypeError) as e:
-            print(f"Error updating screenshot region: {e}")
+            logger.error("Error updating screenshot region: %s", e)
     
     def _update_boundary_indicator(self, active: bool = False, window_title: str = ""):
         """Update the boundary indicator visual state."""
@@ -576,7 +579,7 @@ class CrossPlatformAppFrame(tk.Frame):
                     foreground="#ffffff"
                 )
         except Exception as e:
-            print(f"Error updating boundary indicator: {e}")
+            logger.error("Error updating boundary indicator: %s", e)
     
     def _focus_window(self):
         """Focus and raise the selected window."""
@@ -600,7 +603,7 @@ class CrossPlatformAppFrame(tk.Frame):
                 self._update_status(f"Failed to focus: {window_info.title}")
                 
         except Exception as e:
-            print(f"Focus error: {e}")
+            logger.error("Focus error: %s", e)
             self._update_status("Focus failed")
     
     def _release_window(self):
@@ -631,13 +634,13 @@ class CrossPlatformAppFrame(tk.Frame):
             self._update_status(f"Released: {released_title}")
             
         except Exception as e:
-            print(f"Release error: {e}")
+            logger.error("Release error: %s", e)
             self._update_status("Release failed")
     
     def _update_status(self, message: str):
         """Update the status display."""
         self.status_var.set(f"Status: {message}")
-        print(f"Window Manager: {message}")
+        logger.info("Window Manager: %s", message)
     
     def _update_status_display(self):
         """Update the status display with current state."""
@@ -653,7 +656,7 @@ class CrossPlatformAppFrame(tk.Frame):
     
     def _cleanup_on_close(self):
         """Clean up when the application is closing."""
-        print("Cleaning up window management...")
+        logger.info("Cleaning up window management...")
         
         if self.is_window_managed and self.selected_window:
             try:
@@ -664,9 +667,9 @@ class CrossPlatformAppFrame(tk.Frame):
                     self._update_boundary_indicator(active=False)
                     # Optionally restore window to original position/size
                     # (currently we just leave it where it is)
-                print("Window management cleanup completed")
+                logger.info("Window management cleanup completed")
             except Exception as e:
-                print(f"Cleanup error: {e}")
+                logger.error("Cleanup error: %s", e)
         
         if self.master:
             self.master.destroy()
