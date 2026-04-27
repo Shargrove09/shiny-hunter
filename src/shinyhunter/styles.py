@@ -1,11 +1,27 @@
-from tkinter import ttk
+# customtkinter style constants
 
+FONT_BOLD = ("Calibri", 12, "bold")
+FONT_BOLD_LG = ("Calibri", 14, "bold")
+FONT_SMALL = ("Calibri", 9)
 
-def shiny_style():
-    style = ttk.Style()
-    style.configure('standard.TButton', font=(
-        'calibri', 14, 'bold'))
+BTN_START = {
+    "font": FONT_BOLD,
+    "fg_color": "green",
+    "hover_color": "#005500",
+    "corner_radius": 6,
+}
 
-    style.configure('dropdown.TCombobox', font=('calibri', 14), width=60)
+BTN_STANDARD = {
+    "font": FONT_BOLD,
+    "corner_radius": 6,
+}
 
-    style.configure('select.TLabel', font=('calibri', 10))
+BTN_SET = {
+    "font": ("Calibri", 11),
+    "corner_radius": 4,
+    "width": 40,
+}
+
+DROPDOWN = {
+    "font": FONT_BOLD_LG,
+}
