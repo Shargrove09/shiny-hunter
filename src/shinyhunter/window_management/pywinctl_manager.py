@@ -61,6 +61,10 @@ class GnomeWindowHandle:
             f"if(w){{w.activate(global.get_current_time());w.make_above();}}"
         )
 
+    def raise_only(self):
+        """Raise window above others without stealing focus."""
+        self._eval(f"let w={self._js_window()};if(w)w.make_above();")
+
     def set_always_above(self, above: bool = True):
         """Set or remove always-on-top for this window via GNOME Shell DBus."""
         if above:
@@ -114,8 +118,48 @@ class LinuxWindowHandle:
         except FileNotFoundError:
             self._run('wmctrl', '-i', '-a', self._hex)
 
+    def raise_only(self):
+        """Raise window in z-order without stealing keyboard focus."""
+        try:
+            subprocess.run(['xdotool', 'windowraise', str(self._xid)], timeout=5)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"windowraise error: {e}")
+
     def set_always_above(self, above: bool = True):
-        """Set or remove always-on-top (_NET_WM_STATE_ABOVE) for this window."""
+        """Set or remove _NET_WM_STATE_ABOVE via EWMH (python-xlib preferred, wmctrl fallback)."""
+        # Try python-xlib first — no external tools required
+        try:
+            import os
+            if not os.environ.get('DISPLAY'):
+                raise RuntimeError("No DISPLAY")
+            from Xlib import display as xdisplay, X
+            from Xlib.protocol import event as xevent
+
+            d = xdisplay.Display()
+            root = d.screen().root
+            wm_state = d.intern_atom('_NET_WM_STATE')
+            above_atom = d.intern_atom('_NET_WM_STATE_ABOVE')
+            win = d.create_resource_object('window', self._xid)
+
+            action = 1 if above else 0  # _NET_WM_STATE_ADD=1, _NET_WM_STATE_REMOVE=0
+            e = xevent.ClientMessage(
+                window=win,
+                client_type=wm_state,
+                data=(32, [action, int(above_atom), 0, 1, 0])
+            )
+            root.send_event(e, event_mask=X.SubstructureNotifyMask | X.SubstructureRedirectMask)
+            d.flush()
+            d.close()
+            print(f"_NET_WM_STATE_ABOVE {'added' if above else 'removed'} via python-xlib")
+            return
+        except ImportError:
+            pass  # python-xlib not available
+        except Exception as ex:
+            print(f"python-xlib set_always_above failed: {ex}")
+
+        # Fallback to wmctrl
         prop = 'add' if above else 'remove'
         self._run('wmctrl', '-i', '-r', self._hex, '-b', f'{prop},above')
 
@@ -533,7 +577,12 @@ class PyWinCtlManager(WindowManager):
 
     def raise_window(self, window_info: WindowInfo) -> bool:
         try:
-            window_info.handle.activate()
+            handle = window_info.handle
+            # Prefer raise_only so we don't steal keyboard focus from the tkinter UI
+            if hasattr(handle, 'raise_only'):
+                handle.raise_only()
+            else:
+                handle.activate()
             return True
         except Exception as e:
             print(f"Error raising window: {e}")
