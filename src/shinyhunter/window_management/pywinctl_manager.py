@@ -128,31 +128,44 @@ class PyWinCtlManager(WindowManager):
             d = xdisplay.Display()
             root = d.screen().root
 
-            def _walk(win):
+            # Walk root + one level of children.  Real application windows always
+            # have WM_CLASS set; compositor internals (mutter guard, etc.) do not.
+            seen_titles = set()
+
+            def _check(win):
                 try:
                     attrs = win.get_attributes()
                     if attrs.map_state != X.IsViewable:
                         return
+                    wm_class = win.get_wm_class()
+                    if not wm_class:
+                        return
                     name = win.get_wm_name()
-                    if name and isinstance(name, str) and name.strip():
-                        xid = win.id
-                        windows.append(WindowInfo(
-                            title=name.strip(),
-                            handle=LinuxWindowHandle(xid),
-                            pid=0,
-                            geometry=(0, 0, 0, 0),
-                            is_visible=True,
-                            is_minimized=False,
-                        ))
-                except Exception:
-                    pass
-                try:
-                    for child in win.query_tree().children:
-                        _walk(child)
+                    if not name or not isinstance(name, str):
+                        return
+                    title = name.strip()
+                    if not title or title in seen_titles:
+                        return
+                    seen_titles.add(title)
+                    windows.append(WindowInfo(
+                        title=title,
+                        handle=LinuxWindowHandle(win.id),
+                        pid=0,
+                        geometry=(0, 0, 0, 0),
+                        is_visible=True,
+                        is_minimized=False,
+                    ))
                 except Exception:
                     pass
 
-            _walk(root)
+            for child in root.query_tree().children:
+                _check(child)
+                try:
+                    for grandchild in child.query_tree().children:
+                        _check(grandchild)
+                except Exception:
+                    pass
+
             d.close()
 
         except ImportError:
