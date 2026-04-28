@@ -57,7 +57,9 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
 
     def _create_ui(self):
         """Create the user interface adapted to current capabilities."""
-        self.grid(column=1)
+        self.grid(row=0, column=1, sticky="nsew")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
         self._create_status_display()
         self._create_window_selection()
@@ -198,25 +200,25 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
     def _create_window_area(self):
         """Create the area for embedding or positioning the window."""
         if self.embedding_mode == EmbeddingMode.FULL_EMBED:
-            self.embed_frame = ctk.CTkFrame(self, width=1280, height=960)
-            self.embed_frame.grid(column=1, padx=10, pady=10)
-            self.embed_frame.grid_propagate(False)
+            self.embed_frame = ctk.CTkFrame(self)
+            self.embed_frame.grid(column=1, padx=10, pady=10, sticky="nsew")
+            self.embed_frame.bind("<Configure>", self._on_embed_resize)
 
         elif self.embedding_mode == EmbeddingMode.COMPANION:
             self.companion_frame = ctk.CTkFrame(self)
             self.companion_frame.grid(column=1, padx=10, pady=10, sticky="nsew")
+            self.companion_frame.grid_rowconfigure(0, weight=1)
+            self.companion_frame.grid_columnconfigure(0, weight=1)
 
             self.companion_boundary = {'width': 1280, 'height': 960, 'padding': 10}
 
             self.boundary_indicator = ctk.CTkFrame(
                 self.companion_frame,
-                width=self.companion_boundary['width'],
-                height=self.companion_boundary['height'],
                 fg_color="#2a2b2a",
                 border_width=2,
             )
-            self.boundary_indicator.pack(expand=True)
-            self.boundary_indicator.pack_propagate(False)
+            self.boundary_indicator.pack(fill='both', expand=True)
+            self.boundary_indicator.bind("<Configure>", self._on_boundary_resize)
 
             info_text = (
                 "Selected window will be positioned\n"
@@ -231,6 +233,52 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 fg_color="transparent",
             )
             self.boundary_label.place(relx=0.5, rely=0.5, anchor="center")
+
+    def _on_boundary_resize(self, event):
+        """Update companion_boundary when the indicator frame is resized by Tkinter layout."""
+        self.companion_boundary['width'] = event.width
+        self.companion_boundary['height'] = event.height
+
+        if hasattr(self, 'boundary_label'):
+            if self.is_window_managed and self.selected_window:
+                info_text = (
+                    f"Companion Window Active:\n{self.selected_window.title}\n"
+                    f"({event.width}x{event.height})\n\n"
+                    "Window positioned in this boundary\n"
+                    "and will stay above when focused"
+                )
+            else:
+                info_text = (
+                    "Selected window will be positioned\n"
+                    "within this boundary area\n"
+                    f"({event.width}x{event.height})"
+                )
+            self.boundary_label.configure(text=info_text)
+
+        # Debounce: only reposition external window after resize settles (150ms)
+        if self.is_window_managed and self.selected_window:
+            if hasattr(self, '_boundary_resize_after_id'):
+                self.master.after_cancel(self._boundary_resize_after_id)
+            self._boundary_resize_after_id = self.master.after(
+                150, self._reposition_companion_window
+            )
+
+    def _on_embed_resize(self, event):
+        """Resize the embedded window when the embed frame is resized by Tkinter layout."""
+        if self.selected_window and self.is_window_managed:
+            if hasattr(self, '_embed_resize_after_id'):
+                self.master.after_cancel(self._embed_resize_after_id)
+            self._embed_resize_after_id = self.master.after(
+                150,
+                lambda: self._resize_embedded_window(event.width, event.height)
+            )
+
+    def _resize_embedded_window(self, width: int, height: int):
+        """Call window manager to resize the embedded window to match the frame."""
+        try:
+            self.window_manager.resize_window(self.selected_window, width, height)
+        except Exception as e:
+            print(f"Error resizing embedded window: {e}")
 
     def _refresh_windows(self):
         """Refresh the list of available windows."""

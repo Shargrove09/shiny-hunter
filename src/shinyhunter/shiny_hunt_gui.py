@@ -26,7 +26,9 @@ class ShinyHuntGUI:
         ### Scaling ###
         root.grid_columnconfigure(0, weight=1)
         root.grid_columnconfigure(1, weight=3)
-        root.grid_columnconfigure(2, weight=0)
+        root.grid_columnconfigure(2, weight=1)
+        root.grid_rowconfigure(0, weight=3)  # main content row (frames + game view)
+        root.grid_rowconfigure(4, weight=1)  # log textbox row
 
         self.paused = False
         self.stopped = False
@@ -44,7 +46,8 @@ class ShinyHuntGUI:
 
         # Left Frame
         self.left_frame = ctk.CTkFrame(root, width=200, height=400)
-        self.left_frame.grid(row=0, column=0, padx=20, pady=40, sticky="nws")
+        self.left_frame.grid(row=0, column=0, padx=20, pady=40, sticky="nsew")
+        self.left_frame.grid_columnconfigure(0, weight=1)
 
         # Right Frame
         self.right_frame = ctk.CTkFrame(root, width=200, height=400)
@@ -68,7 +71,7 @@ class ShinyHuntGUI:
         self.status_label.grid(row=3, column=1)
 
         # Log Text Widget
-        self.log_text = ctk.CTkTextbox(root, height=200, width=500, state='disabled')
+        self.log_text = ctk.CTkTextbox(root, state='disabled')
         self.log_text.grid(row=4, column=1, padx=20, pady=20, sticky="nsew")
 
         ##################
