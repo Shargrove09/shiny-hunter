@@ -127,45 +127,38 @@ class PyWinCtlManager(WindowManager):
             from Xlib import X, display as xdisplay
             d = xdisplay.Display()
             root = d.screen().root
+            seen_xids = set()
 
-            # Walk root + one level of children.  Real application windows always
-            # have WM_CLASS set; compositor internals (mutter guard, etc.) do not.
-            seen_titles = set()
-
-            def _check(win):
+            def _walk(win, depth=0):
+                if depth > 6:
+                    return
                 try:
-                    attrs = win.get_attributes()
-                    if attrs.map_state != X.IsViewable:
-                        return
+                    # WM_CLASS is set only on real application windows
                     wm_class = win.get_wm_class()
-                    if not wm_class:
-                        return
-                    name = win.get_wm_name()
-                    if not name or not isinstance(name, str):
-                        return
-                    title = name.strip()
-                    if not title or title in seen_titles:
-                        return
-                    seen_titles.add(title)
-                    windows.append(WindowInfo(
-                        title=title,
-                        handle=LinuxWindowHandle(win.id),
-                        pid=0,
-                        geometry=(0, 0, 0, 0),
-                        is_visible=True,
-                        is_minimized=False,
-                    ))
+                    if wm_class:
+                        xid = win.id
+                        if xid not in seen_xids:
+                            name = win.get_wm_name()
+                            title = name.strip() if isinstance(name, str) else ""
+                            if title:
+                                seen_xids.add(xid)
+                                windows.append(WindowInfo(
+                                    title=title,
+                                    handle=LinuxWindowHandle(xid),
+                                    pid=0,
+                                    geometry=(0, 0, 0, 0),
+                                    is_visible=True,
+                                    is_minimized=False,
+                                ))
                 except Exception:
                     pass
-
-            for child in root.query_tree().children:
-                _check(child)
                 try:
-                    for grandchild in child.query_tree().children:
-                        _check(grandchild)
+                    for child in win.query_tree().children:
+                        _walk(child, depth + 1)
                 except Exception:
                     pass
 
+            _walk(root)
             d.close()
 
         except ImportError:
