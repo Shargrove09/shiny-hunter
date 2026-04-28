@@ -2,6 +2,7 @@
 PyWinCtl-based window manager implementation.
 """
 
+import subprocess
 from typing import List, Optional, Any
 from .base import WindowManager, WindowInfo, EmbeddingMode
 
@@ -43,6 +44,9 @@ class PyWinCtlManager(WindowManager):
     
     def get_all_windows(self) -> List[WindowInfo]:
         """Get information about all available windows using PyWinCtl."""
+        if self.platform == "Linux":
+            return self._get_all_windows_linux()
+
         windows = []
 
         try:
@@ -74,27 +78,75 @@ class PyWinCtlManager(WindowManager):
                 continue
 
         return windows
+
+    def _get_all_windows_linux(self) -> List[WindowInfo]:
+        """Enumerate windows on Linux using wmctrl (avoids pywinctl KeyError issues)."""
+        windows = []
+        try:
+            result = subprocess.run(
+                ['wmctrl', '-l'], capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.strip().splitlines():
+                parts = line.split(None, 3)
+                if len(parts) < 4:
+                    continue
+                title = parts[3].strip()
+                if not title or title == 'N/A':
+                    continue
+                try:
+                    xid = int(parts[0], 16)
+                except ValueError:
+                    continue
+                windows.append(WindowInfo(
+                    title=title,
+                    handle=xid,
+                    pid=0,
+                    geometry=(0, 0, 0, 0),
+                    is_visible=True,
+                    is_minimized=False,
+                ))
+        except FileNotFoundError:
+            print("wmctrl not found — install with: sudo apt-get install wmctrl")
+        except Exception as e:
+            print(f"Error enumerating windows via wmctrl: {e}")
+        return windows
     
+    def _wmctrl(self, xid: int, *args) -> bool:
+        """Run a wmctrl command targeting a window by X ID."""
+        try:
+            subprocess.run(
+                ['wmctrl', '-i', '-r', hex(xid)] + list(args),
+                check=True, timeout=5
+            )
+            return True
+        except Exception as e:
+            print(f"wmctrl error: {e}")
+            return False
+
     def get_window_by_title(self, title: str) -> Optional[WindowInfo]:
         """Find a window by its title."""
+        if self.platform == "Linux":
+            for w in self._get_all_windows_linux():
+                if w.title == title:
+                    return w
+            return None
+
         try:
             windows = pywinctl.getWindowsWithTitle(title)
             if windows:
-                window = windows[0]  # Get first match
-                # Get window ID - PyWinCtl uses 'wid' for window ID
+                window = windows[0]
                 wid = getattr(window, 'wid', 0)
-                    
                 return WindowInfo(
                     title=window.title,
                     handle=window,
                     pid=wid,
                     geometry=(window.left, window.top, window.width, window.height),
                     is_visible=window.visible,
-                    is_minimized=window.isMinimized
+                    is_minimized=window.isMinimized,
                 )
         except Exception as e:
             print(f"Error finding window by title '{title}': {e}")
-            
+
         return None
     
     def get_window_by_handle(self, handle: Any) -> Optional[WindowInfo]:
@@ -269,76 +321,59 @@ class PyWinCtlManager(WindowManager):
             return False
     
     def position_window_in_boundary(self, window_info: WindowInfo, boundary: tuple) -> bool:
-        """
-        Position and resize window to fit within a defined boundary.
-        
-        Args:
-            window_info: The window to position
-            boundary: (x, y, width, height) defining the boundary area
-            
-        Returns:
-            True if successful, False otherwise
-        """
         try:
-            pywinctl_window = window_info.handle
             x, y, width, height = boundary
-            
-            # First resize the window to fit the boundary
+            if isinstance(window_info.handle, int):
+                # Linux: use wmctrl -e gravity,x,y,w,h
+                return self._wmctrl(window_info.handle, '-e', f'0,{x},{y},{width},{height}')
+            pywinctl_window = window_info.handle
             pywinctl_window.resizeTo(width, height)
-            
-            # Then move it to the boundary position
             pywinctl_window.moveTo(x, y)
-            
             print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
             return True
-            
         except Exception as e:
             print(f"Error positioning window in boundary: {e}")
             return False
-    
+
     def raise_window(self, window_info: WindowInfo) -> bool:
-        """Raise window above others (stacking order)."""
         try:
-            pywinctl_window = window_info.handle
-            # PyWinCtl's activate() typically raises the window as well
-            pywinctl_window.activate()
+            if isinstance(window_info.handle, int):
+                return self._wmctrl(window_info.handle, '-b', 'remove,hidden')
+            window_info.handle.activate()
             return True
         except Exception as e:
             print(f"Error raising window: {e}")
             return False
-    
+
     def focus_window(self, window_info: WindowInfo) -> bool:
-        """Bring window to front and focus it."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.activate()
+            if isinstance(window_info.handle, int):
+                return self._wmctrl(window_info.handle, '-b', 'remove,hidden')
+            window_info.handle.activate()
             return True
         except Exception as e:
             print(f"Error focusing window: {e}")
             return False
-    
+
     def resize_window(self, window_info: WindowInfo, width: int, height: int) -> bool:
-        """Resize a window to specified dimensions."""
         try:
-            # If the window is embedded (child of a tkinter widget), use win32gui.MoveWindow
-            # with parent-relative coordinates (0, 0) so it stays inside the embed frame.
             if window_info.title in self._embedded_windows:
                 win32_handle = self._embedded_windows[window_info.title]['win32_handle']
                 win32gui.MoveWindow(win32_handle, 0, 0, width, height, True)
                 return True
-
-            pywinctl_window = window_info.handle
-            pywinctl_window.resizeTo(width, height)
+            if isinstance(window_info.handle, int):
+                return self._wmctrl(window_info.handle, '-e', f'0,-1,-1,{width},{height}')
+            window_info.handle.resizeTo(width, height)
             return True
         except Exception as e:
             print(f"Error resizing window: {e}")
             return False
-    
+
     def move_window(self, window_info: WindowInfo, x: int, y: int) -> bool:
-        """Move window to specified position."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.moveTo(x, y)
+            if isinstance(window_info.handle, int):
+                return self._wmctrl(window_info.handle, '-e', f'0,{x},{y},-1,-1')
+            window_info.handle.moveTo(x, y)
             return True
         except Exception as e:
             print(f"Error moving window: {e}")
