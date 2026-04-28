@@ -7,6 +7,7 @@ that adapts its functionality based on the available window management capabilit
 
 import threading
 import tkinter as tk
+from tkinter import ttk
 import customtkinter as ctk
 from typing import Optional, List
 from styles import BTN_STANDARD, FONT_BOLD, FONT_SMALL, DROPDOWN
@@ -95,11 +96,10 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
             row=1, column=0, columnspan=2, pady=(0, 5)
         )
 
-        self.dropdown = ctk.CTkComboBox(
+        self.dropdown = ttk.Combobox(
             self.right_frame,
-            variable=self.dropdown_var,
+            textvariable=self.dropdown_var,
             state="readonly",
-            **DROPDOWN,
         )
         self.dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
