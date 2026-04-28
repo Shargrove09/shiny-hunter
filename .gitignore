@@ -4,6 +4,7 @@ __pycache__/styles.cpython-312.pyc
 __pycache__/shiny_hunt_gui.cpython-312.pyc
 src/shinyhunter/__pycache__/
 screenshots/shiny_found*
+screenshots
 *.pyc
 *.pyo
 *.pyd

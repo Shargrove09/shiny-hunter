@@ -1,8 +1,11 @@
 # customtkinter style constants
+import platform
 
-FONT_BOLD = ("Calibri", 12, "bold")
-FONT_BOLD_LG = ("Calibri", 14, "bold")
-FONT_SMALL = ("Calibri", 9)
+_FONT_FAMILY = "Calibri" if platform.system() == "Windows" else "DejaVu Sans"
+
+FONT_BOLD = (_FONT_FAMILY, 18, "bold")
+FONT_BOLD_LG = (_FONT_FAMILY, 24, "bold")
+FONT_SMALL = (_FONT_FAMILY, 14)
 
 BTN_START = {
     "font": FONT_BOLD,
@@ -17,7 +20,7 @@ BTN_STANDARD = {
 }
 
 BTN_SET = {
-    "font": ("Calibri", 11),
+    "font": (_FONT_FAMILY, 11),
     "corner_radius": 4,
     "width": 40,
 }

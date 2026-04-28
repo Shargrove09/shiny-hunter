@@ -5,6 +5,7 @@ This module replaces the Windows-specific embedded_app.py with a cross-platform 
 that adapts its functionality based on the available window management capabilities.
 """
 
+import threading
 import tkinter as tk
 import customtkinter as ctk
 from typing import Optional, List
@@ -40,6 +41,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
         self.selected_window: Optional[WindowInfo] = None
         self.is_window_managed = False
         self.update_target_window_callback = None
+        self._window_position_locked = False
 
         # UI variables
         self.dropdown_var = tk.StringVar()
@@ -84,7 +86,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
         mode_text = f"Mode: {self.embedding_mode.value.replace('_', ' ').title()}"
         ctk.CTkLabel(status_frame, text=mode_text, font=FONT_SMALL).pack(anchor="w", padx=10)
 
-        self.status_label = ctk.CTkLabel(status_frame, textvariable=self.status_var, font=FONT_SMALL)
+        self.status_label = ctk.CTkLabel(status_frame, textvariable=self.status_var, font=FONT_SMALL, wraplength=250, justify="left")
         self.status_label.pack(anchor="w", padx=10, pady=(0, 8))
 
     def _create_window_selection(self):
@@ -195,7 +197,10 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
         self.app.shiny_hunter_controller.input_handler._press_key('z')
 
     def _execute_restart_sequence(self):
-        self.app.shiny_hunter_controller.input_handler.restart_sequence()
+        threading.Thread(
+            target=self.app.shiny_hunter_controller.input_handler.restart_sequence,
+            daemon=True,
+        ).start()
 
     def _create_window_area(self):
         """Create the area for embedding or positioning the window."""
@@ -458,7 +463,11 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
         def on_configure(event):
             if self.selected_window and self.is_window_managed:
                 if event.widget == self.master:
-                    self._reposition_companion_window()
+                    if hasattr(self, '_configure_reposition_after_id'):
+                        self.master.after_cancel(self._configure_reposition_after_id)
+                    self._configure_reposition_after_id = self.master.after(
+                        150, self._reposition_companion_window
+                    )
 
         if self.master:
             self.master.bind("<FocusIn>", on_focus_in)
@@ -466,6 +475,8 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
             print("Focus tracking and reposition on move enabled for companion window")
 
     def _reposition_companion_window(self):
+        if self._window_position_locked:
+            return
         if not self.selected_window or not self.is_window_managed:
             return
 
@@ -477,6 +488,10 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 print("Repositioned companion window after main window moved")
         except Exception as e:
             print(f"Error repositioning companion window: {e}")
+
+    def set_window_position_locked(self, locked: bool):
+        """Lock or unlock automatic companion window repositioning."""
+        self._window_position_locked = locked
 
     def _update_screenshot_region(self, boundary: tuple):
         try:

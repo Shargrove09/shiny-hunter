@@ -1,8 +1,11 @@
 import cv2
+import logging
 import os
 from typing import List
 import statistics
 from config import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 class ImageProcessor:
     def __init__(self):
@@ -41,14 +44,12 @@ class ImageProcessor:
             return False
             
         correlation = self.get_correlation(ref_img_path, screenshot_path)
-        print(f"Correlation: {correlation}")
         effective_threshold = self.config.correlation_threshold - self.config.correlation_tolerance
         is_shiny = correlation < effective_threshold
-        print(
-            f"Shiny check: correlation={correlation:.6f}, "
-            f"threshold={self.config.correlation_threshold:.6f}, "
-            f"tolerance={self.config.correlation_tolerance:.6f}, "
-            f"effective_threshold={effective_threshold:.6f}, shiny={is_shiny}"
+        logger.debug(
+            "Shiny check: correlation=%.6f, threshold=%.6f, tolerance=%.6f, effective_threshold=%.6f, shiny=%s",
+            correlation, self.config.correlation_threshold, self.config.correlation_tolerance,
+            effective_threshold, is_shiny,
         )
         return is_shiny
     

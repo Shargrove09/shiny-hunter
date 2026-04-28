@@ -322,6 +322,13 @@ class PyWinCtlManager(WindowManager):
     def resize_window(self, window_info: WindowInfo, width: int, height: int) -> bool:
         """Resize a window to specified dimensions."""
         try:
+            # If the window is embedded (child of a tkinter widget), use win32gui.MoveWindow
+            # with parent-relative coordinates (0, 0) so it stays inside the embed frame.
+            if window_info.title in self._embedded_windows:
+                win32_handle = self._embedded_windows[window_info.title]['win32_handle']
+                win32gui.MoveWindow(win32_handle, 0, 0, width, height, True)
+                return True
+
             pywinctl_window = window_info.handle
             pywinctl_window.resizeTo(width, height)
             return True

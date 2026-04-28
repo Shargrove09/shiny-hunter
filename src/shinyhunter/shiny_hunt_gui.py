@@ -24,9 +24,10 @@ class ShinyHuntGUI:
         self._count_update_after_id = None
 
         ### Scaling ###
-        root.grid_columnconfigure(0, weight=1)
-        root.grid_columnconfigure(1, weight=3)
+        root.grid_columnconfigure(0, weight=0)
+        root.grid_columnconfigure(1, weight=6)
         root.grid_columnconfigure(2, weight=1)
+
         root.grid_rowconfigure(0, weight=3)  # main content row (frames + game view)
         root.grid_rowconfigure(4, weight=1)  # log textbox row
 
@@ -45,14 +46,17 @@ class ShinyHuntGUI:
         self.screenshot_manager = ScreenshotManager()
 
         # Left Frame
-        self.left_frame = ctk.CTkFrame(root, width=200, height=400)
+        self.left_frame = ctk.CTkScrollableFrame(root, width=200)
         self.left_frame.grid(row=0, column=0, padx=20, pady=40, sticky="nsew")
         self.left_frame.grid_columnconfigure(0, weight=1)
 
+        # Calibration Frame
+
         # Right Frame
         self.right_frame = ctk.CTkFrame(root, width=200, height=400)
-        self.right_frame.grid(row=0, column=2, ipadx=10, padx=40, pady=40, sticky="nsew")
+        self.right_frame.grid(row=0, column=2, ipadx=10, padx=20, pady=40, sticky="nsew")
         self.right_frame.grid_columnconfigure(0, weight=1)
+        self.right_frame.grid_propagate(False)
 
         # Input indicator label
         self.input_indicator_label = ctk.CTkLabel(
@@ -103,7 +107,7 @@ class ShinyHuntGUI:
         self.settings_button.grid(row=6, column=0, pady=10)
 
         # Calibration Section
-        self._create_calibration_section()
+        self._create_calibration_section(root)
 
         screenshot_button = ctk.CTkButton(
             self.right_frame,
@@ -127,10 +131,10 @@ class ShinyHuntGUI:
         # Keep counter label synchronized with controller state
         self._start_count_sync()
 
-    def _create_calibration_section(self):
+    def _create_calibration_section(self, root):
         """Create the threshold calibration section in the left frame."""
         calibration_frame = ctk.CTkFrame(self.left_frame)
-        calibration_frame.grid(row=7, column=0, pady=(20, 0), sticky="ew")
+        calibration_frame.grid(row=4, column=0, pady=(20, 0), sticky="nsew")
 
         ctk.CTkLabel(calibration_frame, text="Threshold Calibration", font=FONT_BOLD).pack(
             anchor="w", padx=10, pady=(8, 0)
@@ -257,7 +261,6 @@ class ShinyHuntGUI:
 
         if config.calibration_mode:
             self.capture_reference_button.configure(state='normal')
-            self.record_sample_button.configure(state='normal')
             self.start_button.configure(state='disabled')
             self.calibration_info.configure(
                 text="Calibration Mode Active!\nNavigate to encounter screen,\nthen capture reference.",
@@ -480,6 +483,9 @@ class ShinyHuntGUI:
         self.status_label.configure(text="Mewtwo Hunt in progress...")
         self.start_button.configure(state="disabled")
 
+        if hasattr(self, 'cross_platform_app_frame'):
+            self.cross_platform_app_frame.set_window_position_locked(True)
+
         self.handle_start()
         self.input_thread.start()
 
@@ -519,6 +525,9 @@ class ShinyHuntGUI:
         self.start_button.configure(state="normal")
         self.status_label.configure(text="Mewtwo Hunt stopped.")
         self.update_count()
+
+        if hasattr(self, 'cross_platform_app_frame'):
+            self.cross_platform_app_frame.set_window_position_locked(False)
 
     def open_settings(self):
         """Open a settings popup window."""

@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     root = ctk.CTk()
     root.title("Shiny Hunt v0.2-alpha")
-    root.geometry("1920x1080")
+    # root.geometry("1920x1080")
 
 
 
