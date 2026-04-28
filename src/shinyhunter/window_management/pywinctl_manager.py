@@ -2,6 +2,8 @@
 PyWinCtl-based window manager implementation.
 """
 
+import json
+import re
 import subprocess
 from typing import List, Optional, Any
 from .base import WindowManager, WindowInfo, EmbeddingMode
@@ -20,6 +22,62 @@ try:
     WIN32_AVAILABLE = True
 except ImportError:
     WIN32_AVAILABLE = False
+
+
+class GnomeWindowHandle:
+    """Window handle for pure-Wayland GNOME sessions.
+
+    Uses GNOME Shell DBus (gdbus) to activate/move/resize windows via
+    MetaWindow JS API.  No X11 required.
+    """
+
+    def __init__(self, wid: int):
+        self._wid = wid
+
+    def _eval(self, js: str):
+        try:
+            subprocess.run(
+                ['gdbus', 'call', '--session',
+                 '--dest', 'org.gnome.Shell',
+                 '--object-path', '/org/gnome/Shell',
+                 '--method', 'org.gnome.Shell.Eval', js],
+                capture_output=True, timeout=5
+            )
+        except FileNotFoundError:
+            print("gdbus not found — cannot control Wayland windows")
+        except Exception as e:
+            print(f"GNOME Shell eval error: {e}")
+
+    def _js_window(self) -> str:
+        return (
+            f"global.get_window_actors()"
+            f".map(a=>a.meta_window)"
+            f".find(w=>w.get_id()=={self._wid})"
+        )
+
+    def activate(self):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.activate(global.get_current_time());"
+        )
+
+    def moveTo(self, x: int, y: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.move_frame(true,{x},{y});"
+        )
+
+    def resizeTo(self, width: int, height: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.resize(true,{width},{height});"
+        )
+
+    def moveResizeTo(self, x: int, y: int, width: int, height: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.move_resize_frame(true,{x},{y},{width},{height});"
+        )
 
 
 class LinuxWindowHandle:
@@ -121,9 +179,73 @@ class PyWinCtlManager(WindowManager):
         return windows
 
     def _get_all_windows_linux(self) -> List[WindowInfo]:
-        """Enumerate windows on Linux using python-xlib (works on X11 and XWayland)."""
+        """Enumerate windows on Linux.
+
+        Tries in order:
+        1. GNOME Shell DBus (pure Wayland, GNOME)
+        2. python-xlib (X11 / XWayland)
+        3. xdotool search (X11 / XWayland fallback)
+        """
+        windows = self._enumerate_via_gnome_shell()
+        if not windows:
+            windows = self._enumerate_via_xlib()
+        if not windows:
+            windows = self._enumerate_via_xdotool()
+        return windows
+
+    def _enumerate_via_gnome_shell(self) -> List[WindowInfo]:
+        """Enumerate windows via GNOME Shell DBus (works on pure Wayland)."""
         windows = []
         try:
+            js = (
+                "JSON.stringify("
+                "global.get_window_actors()"
+                ".map(a=>a.meta_window)"
+                ".filter(w=>!w.is_skip_taskbar()&&w.get_title())"
+                ".map(w=>({id:w.get_id(),title:w.get_title()}))"
+                ")"
+            )
+            result = subprocess.run(
+                ['gdbus', 'call', '--session',
+                 '--dest', 'org.gnome.Shell',
+                 '--object-path', '/org/gnome/Shell',
+                 '--method', 'org.gnome.Shell.Eval', js],
+                capture_output=True, text=True, timeout=5
+            )
+            # gdbus output: (@(bs) (true, '[{"id":1,"title":"foo"}]'),)
+            # Extract the JSON array
+            out = result.stdout
+            start = out.find('[')
+            end = out.rfind(']')
+            if start == -1 or end == -1:
+                return windows
+            data = json.loads(out[start:end + 1])
+            seen = set()
+            for entry in data:
+                title = entry.get('title', '').strip()
+                wid = entry.get('id')
+                if title and wid is not None and title not in seen:
+                    seen.add(title)
+                    windows.append(WindowInfo(
+                        title=title,
+                        handle=GnomeWindowHandle(int(wid)),
+                        pid=0,
+                        geometry=(0, 0, 0, 0),
+                        is_visible=True,
+                        is_minimized=False,
+                    ))
+        except FileNotFoundError:
+            pass  # gdbus not available — not a GNOME system
+        except Exception as e:
+            print(f"GNOME Shell enumeration error: {e}")
+        return windows
+
+    def _enumerate_via_xlib(self) -> List[WindowInfo]:
+        windows = []
+        try:
+            import os
+            if not os.environ.get('DISPLAY'):
+                return windows
             from Xlib import X, display as xdisplay
             d = xdisplay.Display()
             root = d.screen().root
@@ -133,7 +255,6 @@ class PyWinCtlManager(WindowManager):
                 if depth > 6:
                     return
                 try:
-                    # WM_CLASS is set only on real application windows
                     wm_class = win.get_wm_class()
                     if wm_class:
                         xid = win.id
@@ -160,11 +281,45 @@ class PyWinCtlManager(WindowManager):
 
             _walk(root)
             d.close()
-
         except ImportError:
-            print("python-xlib not available — install with: pip install python-xlib")
+            print("python-xlib not available, trying xdotool fallback")
         except Exception as e:
-            print(f"Error enumerating windows via python-xlib: {e}")
+            print(f"python-xlib enumeration error: {e}")
+        return windows
+
+    def _enumerate_via_xdotool(self) -> List[WindowInfo]:
+        """Fallback: enumerate windows via xdotool search."""
+        windows = []
+        try:
+            result = subprocess.run(
+                ['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                capture_output=True, text=True, timeout=5
+            )
+            xids = [int(x) for x in result.stdout.strip().splitlines() if x.strip()]
+            seen_titles = set()
+            for xid in xids:
+                try:
+                    name_result = subprocess.run(
+                        ['xdotool', 'getwindowname', str(xid)],
+                        capture_output=True, text=True, timeout=2
+                    )
+                    title = name_result.stdout.strip()
+                    if title and title not in seen_titles:
+                        seen_titles.add(title)
+                        windows.append(WindowInfo(
+                            title=title,
+                            handle=LinuxWindowHandle(xid),
+                            pid=0,
+                            geometry=(0, 0, 0, 0),
+                            is_visible=True,
+                            is_minimized=False,
+                        ))
+                except Exception:
+                    continue
+        except FileNotFoundError:
+            print("xdotool not found — install with: sudo apt-get install xdotool")
+        except Exception as e:
+            print(f"xdotool enumeration error: {e}")
         return windows
 
     def get_window_by_title(self, title: str) -> Optional[WindowInfo]:
