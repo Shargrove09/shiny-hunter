@@ -23,30 +23,49 @@ except ImportError:
 
 
 class LinuxWindowHandle:
-    """Wraps an X window ID and exposes a pywinctl-compatible interface via wmctrl."""
+    """Wraps an X window ID and exposes a pywinctl-compatible interface.
+
+    Uses xdotool for operations (works on both X11 and XWayland/Wayland).
+    Falls back to wmctrl if xdotool is unavailable.
+    """
 
     def __init__(self, xid: int):
+        self._xid = xid
         self._hex = hex(xid)
 
     def _run(self, *args):
         try:
             subprocess.run(list(args), timeout=5)
         except FileNotFoundError:
-            print("wmctrl not found — install with: sudo apt-get install wmctrl")
+            pass  # tool not installed — silently skip
         except Exception as e:
-            print(f"wmctrl error: {e}")
+            print(f"Window operation error ({args[0]}): {e}")
 
     def activate(self):
-        self._run('wmctrl', '-i', '-a', self._hex)
+        # xdotool works on XWayland; wmctrl -i -a is X11-only
+        try:
+            subprocess.run(['xdotool', 'windowactivate', '--sync', str(self._xid)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-a', self._hex)
 
     def moveTo(self, x: int, y: int):
-        self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},-1,-1')
+        try:
+            subprocess.run(['xdotool', 'windowmove', str(self._xid), str(x), str(y)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},-1,-1')
 
     def resizeTo(self, w: int, h: int):
-        self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,-1,-1,{w},{h}')
+        try:
+            subprocess.run(['xdotool', 'windowsize', str(self._xid), str(w), str(h)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,-1,-1,{w},{h}')
 
     def moveResizeTo(self, x: int, y: int, w: int, h: int):
-        self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},{w},{h}')
+        try:
+            subprocess.run(['xdotool', 'windowmove', str(self._xid), str(x), str(y)], timeout=5)
+            subprocess.run(['xdotool', 'windowsize', str(self._xid), str(w), str(h)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},{w},{h}')
 
 
 class PyWinCtlManager(WindowManager):
@@ -102,35 +121,44 @@ class PyWinCtlManager(WindowManager):
         return windows
 
     def _get_all_windows_linux(self) -> List[WindowInfo]:
-        """Enumerate windows on Linux using wmctrl."""
+        """Enumerate windows on Linux using python-xlib (works on X11 and XWayland)."""
         windows = []
         try:
-            result = subprocess.run(
-                ['wmctrl', '-l'], capture_output=True, text=True, timeout=5
-            )
-            for line in result.stdout.strip().splitlines():
-                parts = line.split(None, 3)
-                if len(parts) < 4:
-                    continue
-                title = parts[3].strip()
-                if not title or title == 'N/A':
-                    continue
+            from Xlib import X, display as xdisplay
+            d = xdisplay.Display()
+            root = d.screen().root
+
+            def _walk(win):
                 try:
-                    xid = int(parts[0], 16)
-                except ValueError:
-                    continue
-                windows.append(WindowInfo(
-                    title=title,
-                    handle=LinuxWindowHandle(xid),
-                    pid=0,
-                    geometry=(0, 0, 0, 0),
-                    is_visible=True,
-                    is_minimized=False,
-                ))
-        except FileNotFoundError:
-            print("wmctrl not found — install with: sudo apt-get install wmctrl")
+                    attrs = win.get_attributes()
+                    if attrs.map_state != X.IsViewable:
+                        return
+                    name = win.get_wm_name()
+                    if name and isinstance(name, str) and name.strip():
+                        xid = win.id
+                        windows.append(WindowInfo(
+                            title=name.strip(),
+                            handle=LinuxWindowHandle(xid),
+                            pid=0,
+                            geometry=(0, 0, 0, 0),
+                            is_visible=True,
+                            is_minimized=False,
+                        ))
+                except Exception:
+                    pass
+                try:
+                    for child in win.query_tree().children:
+                        _walk(child)
+                except Exception:
+                    pass
+
+            _walk(root)
+            d.close()
+
+        except ImportError:
+            print("python-xlib not available — install with: pip install python-xlib")
         except Exception as e:
-            print(f"Error enumerating windows via wmctrl: {e}")
+            print(f"Error enumerating windows via python-xlib: {e}")
         return windows
 
     def get_window_by_title(self, title: str) -> Optional[WindowInfo]:
