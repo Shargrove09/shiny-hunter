@@ -58,8 +58,15 @@ class GnomeWindowHandle:
     def activate(self):
         self._eval(
             f"let w={self._js_window()};"
-            f"if(w)w.activate(global.get_current_time());"
+            f"if(w){{w.activate(global.get_current_time());w.make_above();}}"
         )
+
+    def set_always_above(self, above: bool = True):
+        """Set or remove always-on-top for this window via GNOME Shell DBus."""
+        if above:
+            self._eval(f"let w={self._js_window()};if(w)w.make_above();")
+        else:
+            self._eval(f"let w={self._js_window()};if(w)w.unmake_above();")
 
     def moveTo(self, x: int, y: int):
         self._eval(
@@ -103,8 +110,14 @@ class LinuxWindowHandle:
         # xdotool works on XWayland; wmctrl -i -a is X11-only
         try:
             subprocess.run(['xdotool', 'windowactivate', '--sync', str(self._xid)], timeout=5)
+            subprocess.run(['xdotool', 'windowraise', str(self._xid)], timeout=5)
         except FileNotFoundError:
             self._run('wmctrl', '-i', '-a', self._hex)
+
+    def set_always_above(self, above: bool = True):
+        """Set or remove always-on-top (_NET_WM_STATE_ABOVE) for this window."""
+        prop = 'add' if above else 'remove'
+        self._run('wmctrl', '-i', '-r', self._hex, '-b', f'{prop},above')
 
     def moveTo(self, x: int, y: int):
         try:
@@ -473,8 +486,10 @@ class PyWinCtlManager(WindowManager):
             return False
 
     def _unembed_window_fallback(self, window_info: WindowInfo) -> bool:
-        """Fallback unembedding (just activate the window)."""
+        """Fallback unembedding (remove always-on-top and activate the window)."""
         try:
+            if hasattr(window_info.handle, 'set_always_above'):
+                window_info.handle.set_always_above(False)
             window_info.handle.activate()
             return True
         except Exception as e:
@@ -507,6 +522,9 @@ class PyWinCtlManager(WindowManager):
             else:
                 handle.resizeTo(width, height)
                 handle.moveTo(x, y)
+            # Raise above tkinter UI (Linux/macOS companion mode)
+            if hasattr(handle, 'set_always_above'):
+                handle.set_always_above(True)
             print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
             return True
         except Exception as e:

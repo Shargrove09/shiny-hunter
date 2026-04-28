@@ -101,7 +101,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
             textvariable=self.dropdown_var,
             state="readonly",
         )
-        self.dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        self.dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
 
         self.refresh_button = ctk.CTkButton(
             self.right_frame,
@@ -109,7 +109,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
             command=self._refresh_windows,
             **BTN_STANDARD,
         )
-        self.refresh_button.grid(row=3, column=0, columnspan=2, pady=(0, 10))
+        self.refresh_button.grid(row=3, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="ew")
 
         self._refresh_windows()
 
@@ -124,7 +124,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 command=self._embed_window,
                 **BTN_STANDARD,
             )
-            self.launch_button.grid(row=button_row, column=0, columnspan=2, pady=(0, 5))
+            self.launch_button.grid(row=button_row, column=0, columnspan=2, padx=10, pady=(0, 5), sticky="ew")
 
             self.unembed_button = ctk.CTkButton(
                 self.right_frame,
@@ -133,7 +133,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 state="disabled",
                 **BTN_STANDARD,
             )
-            self.unembed_button.grid(row=button_row + 1, column=0, columnspan=2, pady=(0, 10))
+            self.unembed_button.grid(row=button_row + 1, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="ew")
 
         elif self.capabilities.get('window_positioning', False):
             self.position_button = ctk.CTkButton(
@@ -142,7 +142,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 command=self._position_window,
                 **BTN_STANDARD,
             )
-            self.position_button.grid(row=button_row, column=0, columnspan=2, pady=(0, 5))
+            self.position_button.grid(row=button_row, column=0, columnspan=2, padx=10, pady=(0, 5), sticky="ew")
 
             self.release_button = ctk.CTkButton(
                 self.right_frame,
@@ -151,7 +151,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 state="disabled",
                 **BTN_STANDARD,
             )
-            self.release_button.grid(row=button_row + 1, column=0, columnspan=2, pady=(0, 5))
+            self.release_button.grid(row=button_row + 1, column=0, columnspan=2, padx=10, pady=(0, 5), sticky="ew")
 
             self.focus_button = ctk.CTkButton(
                 self.right_frame,
@@ -159,7 +159,7 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
                 command=self._focus_window,
                 **BTN_STANDARD,
             )
-            self.focus_button.grid(row=button_row + 2, column=0, columnspan=2, pady=(0, 10))
+            self.focus_button.grid(row=button_row + 2, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="ew")
 
         else:
             ctk.CTkLabel(
@@ -430,8 +430,12 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
 
             x = self.boundary_indicator.winfo_rootx()
             y = self.boundary_indicator.winfo_rooty()
-            width = self.companion_boundary['width']
-            height = self.companion_boundary['height']
+            width = self.boundary_indicator.winfo_width()
+            height = self.boundary_indicator.winfo_height()
+
+            # Keep the dict in sync for display purposes
+            self.companion_boundary['width'] = width
+            self.companion_boundary['height'] = height
 
             if x <= 0 or y <= 0:
                 print(f"Warning: Boundary has invalid position ({x}, {y}), waiting for frame to be ready")
@@ -577,6 +581,15 @@ class CrossPlatformAppFrame(ctk.CTkFrame):
 
         try:
             released_title = self.selected_window.title
+
+            # Remove always-on-top if it was set (Linux companion mode)
+            handle = self.selected_window.handle
+            if self.window_manager and hasattr(handle, 'set_always_above'):
+                try:
+                    handle.set_always_above(False)
+                except Exception as e:
+                    print(f"Could not remove always-above: {e}")
+
             self.selected_window = None
             self.is_window_managed = False
 

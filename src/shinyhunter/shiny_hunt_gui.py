@@ -53,10 +53,9 @@ class ShinyHuntGUI:
         # Calibration Frame
 
         # Right Frame
-        self.right_frame = ctk.CTkFrame(root, width=200, height=400)
+        self.right_frame = ctk.CTkScrollableFrame(root, width=200)
         self.right_frame.grid(row=0, column=2, ipadx=10, padx=20, pady=40, sticky="nsew")
         self.right_frame.grid_columnconfigure(0, weight=1)
-        self.right_frame.grid_propagate(False)
 
         # Input indicator label
         self.input_indicator_label = ctk.CTkLabel(
@@ -84,17 +83,17 @@ class ShinyHuntGUI:
         # Start Button
         self.start_button = ctk.CTkButton(
             self.left_frame, text="Start Hunt", command=self.on_start_hunt, **BTN_START)
-        self.start_button.grid(row=2, column=0, pady=10)
+        self.start_button.grid(row=2, column=0, pady=10, padx=10, sticky="ew")
 
         # Pause Button
         self.pause_button = ctk.CTkButton(
             self.left_frame, text="Pause Hunt", command=self.toggle_pause, **BTN_STANDARD)
-        self.pause_button.grid(row=3, column=0, padx=25)
+        self.pause_button.grid(row=3, column=0, padx=10, sticky="ew")
 
         # Stop Button
         self.stop_button = ctk.CTkButton(
             self.left_frame, text="Stop Hunt", command=self.stop_hunt, **BTN_STANDARD)
-        self.stop_button.grid(row=4, column=0, padx=2)
+        self.stop_button.grid(row=4, column=0, padx=10, sticky="ew")
 
         # Reset Counter
         self.reset_count = ctk.CTkLabel(
@@ -104,7 +103,7 @@ class ShinyHuntGUI:
         # Settings Button
         self.settings_button = ctk.CTkButton(
             self.left_frame, text="Settings", command=self.open_settings, **BTN_STANDARD)
-        self.settings_button.grid(row=6, column=0, pady=10)
+        self.settings_button.grid(row=6, column=0, pady=10, padx=10, sticky="ew")
 
         # Calibration Section
         self._create_calibration_section(root)
@@ -115,7 +114,7 @@ class ShinyHuntGUI:
             command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png"),
             **BTN_STANDARD
         )
-        screenshot_button.grid(row=7, column=0)
+        screenshot_button.grid(row=7, column=0, padx=10, sticky="ew")
 
         restart_button = ctk.CTkButton(
             self.right_frame,
@@ -123,7 +122,7 @@ class ShinyHuntGUI:
             command=lambda: self.input_handler.restart_sequence(),
             **BTN_STANDARD
         )
-        restart_button.grid(row=6, column=0, padx=2)
+        restart_button.grid(row=6, column=0, padx=10, sticky="ew")
 
         # Hook telemetry from input handler to live UI indicator
         self.input_handler.set_input_event_callback(self._on_input_event)
