@@ -44,37 +44,35 @@ class PyWinCtlManager(WindowManager):
     def get_all_windows(self) -> List[WindowInfo]:
         """Get information about all available windows using PyWinCtl."""
         windows = []
-        
+
         try:
             pywinctl_windows = pywinctl.getAllWindows()
-            print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
-            print(f"Sample window titles: {[w.title for w in pywinctl_windows[:5]]}")
-            for window in pywinctl_windows:
-                try:
-                    # Filter out windows without titles or that are not visible
-                    if not window.title or not window.visible:
-                        continue
-                    
-                    # Get window ID - PyWinCtl uses 'wid' for window ID
-                    wid = getattr(window, 'wid', 0)
-                        
-                    window_info = WindowInfo(
-                        title=window.title,
-                        handle=window,  # Store the PyWinCtl window object
-                        pid=wid,
-                        geometry=(window.left, window.top, window.width, window.height),
-                        is_visible=window.visible,
-                        is_minimized=window.isMinimized
-                    )
-                    windows.append(window_info)
-                    
-                except Exception as e:
-                    # Skip windows that cause errors (common with system windows)
-                    continue
-                    
         except Exception as e:
             print(f"Error enumerating windows: {e}")
-            
+            return windows
+
+        print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
+
+        for window in pywinctl_windows:
+            try:
+                if not window.title or not window.visible:
+                    continue
+
+                wid = getattr(window, 'wid', 0)
+
+                window_info = WindowInfo(
+                    title=window.title,
+                    handle=window,
+                    pid=wid,
+                    geometry=(window.left, window.top, window.width, window.height),
+                    is_visible=window.visible,
+                    is_minimized=window.isMinimized,
+                )
+                windows.append(window_info)
+
+            except Exception:
+                continue
+
         return windows
     
     def get_window_by_title(self, title: str) -> Optional[WindowInfo]:
