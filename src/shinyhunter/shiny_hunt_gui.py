@@ -105,16 +105,16 @@ class ShinyHuntGUI:
             self.left_frame, text="Settings", command=self.open_settings, **BTN_STANDARD)
         self.settings_button.grid(row=6, column=0, pady=10, padx=10, sticky="ew")
 
-        # Calibration Section
-        self._create_calibration_section(root)
-
-        screenshot_button = ctk.CTkButton(
-            self.right_frame,
+        # Save Encounter Template Button
+        ctk.CTkButton(
+            self.left_frame,
             text="Save Encounter Template",
             command=self._save_encounter_template,
             **BTN_STANDARD
-        )
-        screenshot_button.grid(row=7, column=0, padx=10, sticky="ew")
+        ).grid(row=7, column=0, pady=10, padx=10, sticky="ew")
+
+        # Calibration Section
+        self._create_calibration_section(root)
 
         restart_button = ctk.CTkButton(
             self.right_frame,
