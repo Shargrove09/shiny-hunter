@@ -110,8 +110,8 @@ class ShinyHuntGUI:
 
         screenshot_button = ctk.CTkButton(
             self.right_frame,
-            text="Take Screenshot",
-            command=lambda: self.screenshot_manager.take_screenshot("encounter_screen_template.png"),
+            text="Save Encounter Template",
+            command=self._save_encounter_template,
             **BTN_STANDARD
         )
         screenshot_button.grid(row=7, column=0, padx=10, sticky="ew")
@@ -478,7 +478,18 @@ class ShinyHuntGUI:
         self.log_text.configure(state='disabled')
         self.log_text.see('end')
 
+    def _save_encounter_template(self):
+        path = self.screenshot_manager.take_screenshot("encounter_screen_template.png")
+        self.log_message(f"Encounter template saved to: {path}")
+
     def on_start_hunt(self):
+        config = ConfigManager().get_config()
+        if not os.path.exists(config.encounter_template_path):
+            self.log_message(
+                "Warning: No encounter template set — pre-encounter screen guard is inactive. "
+                "Navigate to the pre-encounter screen and press 'Save Encounter Template'."
+            )
+
         self.status_label.configure(text="Mewtwo Hunt in progress...")
         self.start_button.configure(state="disabled")
 
