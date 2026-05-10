@@ -1,0 +1,8 @@
+{
+  "description": "Custom encounter sequence. Step types: press | pause | hold | combo. Keys: x (A button), z (B button), enter (Start), backspace (Select)",
+  "encounter_sequence": [
+    {"type": "press", "key": "x", "delay_after": 0.5},
+    {"type": "pause", "duration": 2.5},
+    {"type": "press", "key": "x", "delay_after": 5.0}
+  ]
+}

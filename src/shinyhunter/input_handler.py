@@ -223,8 +223,55 @@ class InputHandler:
             return True
 
         return False
-    
-    
+
+    def execute_custom_sequence(self, steps: list):
+        """Execute a user-defined sequence of input steps.
+
+        Each step is a dict with a 'type' key. Supported types:
+          press  – tap a key:   {"type": "press", "key": "x", "delay_after": 0.5}
+          pause  – wait:        {"type": "pause", "duration": 2.0}
+          hold   – hold a key:  {"type": "hold",  "key": "x", "duration": 1.0, "delay_after": 0.5}
+          combo  – simultaneous: {"type": "combo", "keys": ["x","z"], "hold_duration": 0.2, "delay_after": 0.5}
+        """
+        if self.platform in ["Linux", "Darwin"]:
+            self._ensure_window_focused()
+
+        for i, step in enumerate(steps):
+            step_type = step.get("type")
+            print(f"[SEQ] step {i + 1}/{len(steps)}: {step}")
+
+            if step_type == "press":
+                self._press_key(step["key"], ensure_focus=False)
+                delay = step.get("delay_after", 0)
+                if delay > 0:
+                    self._jittered_sleep(delay)
+
+            elif step_type == "pause":
+                self._jittered_sleep(step.get("duration", 0))
+
+            elif step_type == "hold":
+                key = step["key"]
+                self._key_down(key)
+                time.sleep(step.get("duration", 0.1))
+                self._key_up(key)
+                delay = step.get("delay_after", 0)
+                if delay > 0:
+                    self._jittered_sleep(delay)
+
+            elif step_type == "combo":
+                keys = step.get("keys", [])
+                for k in keys:
+                    self._key_down(k)
+                time.sleep(step.get("hold_duration", 0.2))
+                for k in keys:
+                    self._key_up(k)
+                delay = step.get("delay_after", 0)
+                if delay > 0:
+                    self._jittered_sleep(delay)
+
+            else:
+                print(f"[SEQ] Warning: unknown step type '{step_type}', skipping")
+
     def restart_sequence(self):
         """Execute the restart sequence."""
         print("Starting restart sequence...")

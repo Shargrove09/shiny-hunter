@@ -4,6 +4,9 @@ from tkinter import filedialog
 from threading import Thread
 from PIL import Image, ImageTk
 import os
+import json
+import subprocess
+import platform as _platform
 from styles import BTN_START, BTN_STANDARD, BTN_SET, DROPDOWN, FONT_BOLD, FONT_SMALL
 from screenshot_manager import ScreenshotManager
 from config import ConfigManager
@@ -112,6 +115,9 @@ class ShinyHuntGUI:
             command=self._save_encounter_template,
             **BTN_STANDARD
         ).grid(row=7, column=0, pady=10, padx=10, sticky="ew")
+
+        # Encounter Method Section
+        self._create_method_section()
 
         # Calibration Section
         self._create_calibration_section(root)
@@ -482,9 +488,164 @@ class ShinyHuntGUI:
         path = self.screenshot_manager.take_screenshot("encounter_screen_template.png")
         self.log_message(f"Encounter template saved to: {path}")
 
+    def _create_method_section(self):
+        """Create the encounter method toggle section in the left frame."""
+        config = ConfigManager().get_config()
+
+        method_frame = ctk.CTkFrame(self.left_frame)
+        method_frame.grid(row=8, column=0, pady=(10, 0), padx=10, sticky="ew")
+        method_frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(method_frame, text="Encounter Method", font=FONT_BOLD).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+
+        initial = "Custom" if config.use_custom_sequence else "Static"
+        self._method_btn = ctk.CTkSegmentedButton(
+            method_frame,
+            values=["Static", "Custom"],
+            command=self._on_method_toggle,
+        )
+        self._method_btn.set(initial)
+        self._method_btn.pack(fill="x", padx=10, pady=(0, 6))
+
+        self._edit_sequence_btn = ctk.CTkButton(
+            method_frame,
+            text="Edit Sequence Config",
+            command=self._open_sequence_editor,
+            **BTN_STANDARD,
+        )
+        self._edit_sequence_btn.pack(fill="x", padx=10, pady=(0, 8))
+
+        if not config.use_custom_sequence:
+            self._edit_sequence_btn.pack_forget()
+
+    def _on_method_toggle(self, value: str):
+        """Handle encounter method toggle between Static and Custom."""
+        config_manager = ConfigManager()
+        config = config_manager.get_config()
+        config.use_custom_sequence = (value == "Custom")
+        config_manager.save_config()
+
+        if config.use_custom_sequence:
+            self._edit_sequence_btn.pack(fill="x", padx=10, pady=(0, 8))
+            self.log_message("Encounter method: Custom sequence")
+        else:
+            self._edit_sequence_btn.pack_forget()
+            self.log_message("Encounter method: Static (built-in)")
+
+    def _open_sequence_editor(self):
+        """Open a modal editor for the encounter_sequence.json file."""
+        config = ConfigManager().get_config()
+        seq_path = config.sequence_config_path
+        if not os.path.isabs(seq_path):
+            seq_path = os.path.join(os.getcwd(), seq_path.lstrip('./'))
+
+        DEFAULT_TEMPLATE = {
+            "description": "Step types: press | pause | hold | combo. Keys: x (A), z (B), enter (Start), backspace (Select)",
+            "encounter_sequence": [
+                {"type": "press", "key": "x", "delay_after": 0.5},
+                {"type": "pause", "duration": 2.5},
+                {"type": "press", "key": "x", "delay_after": 5.0},
+            ],
+        }
+
+        try:
+            with open(seq_path, 'r', encoding='utf-8') as f:
+                current_data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            current_data = DEFAULT_TEMPLATE
+
+        editor = ctk.CTkToplevel(self.root)
+        editor.title("Edit Sequence Config")
+        editor.geometry("560x520")
+        editor.resizable(True, True)
+        editor.transient(self.root)
+        editor.grab_set()
+
+        editor.update_idletasks()
+        x = (editor.winfo_screenwidth() // 2) - 280
+        y = (editor.winfo_screenheight() // 2) - 260
+        editor.geometry(f"560x520+{x}+{y}")
+
+        ctk.CTkLabel(editor, text="encounter_sequence.json", font=FONT_BOLD).pack(
+            anchor="w", padx=14, pady=(12, 4)
+        )
+
+        textbox = ctk.CTkTextbox(editor, font=("Courier New", 12))
+        textbox.pack(fill="both", expand=True, padx=14, pady=(0, 6))
+        textbox.insert("1.0", json.dumps(current_data, indent=2))
+
+        error_label = ctk.CTkLabel(editor, text="", text_color="red", font=FONT_SMALL)
+        error_label.pack(anchor="w", padx=14)
+        self._seq_editor_error_after = None
+
+        def _show_error(msg: str):
+            error_label.configure(text=msg)
+            if self._seq_editor_error_after is not None:
+                editor.after_cancel(self._seq_editor_error_after)
+            self._seq_editor_error_after = editor.after(3000, lambda: error_label.configure(text=""))
+
+        def _save():
+            raw = textbox.get("1.0", "end-1c")
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError as e:
+                _show_error(f"Invalid JSON: {e}")
+                return
+            try:
+                with open(seq_path, 'w', encoding='utf-8') as f:
+                    json.dump(parsed, f, indent=2)
+                self.log_message(f"Sequence config saved to: {seq_path}")
+                editor.destroy()
+            except OSError as e:
+                _show_error(f"Could not write file: {e}")
+
+        def _open_external():
+            try:
+                sys_platform = _platform.system()
+                if sys_platform == "Darwin":
+                    subprocess.Popen(["open", seq_path])
+                elif sys_platform == "Windows":
+                    os.startfile(seq_path)
+                else:
+                    subprocess.Popen(["xdg-open", seq_path])
+            except Exception as e:
+                _show_error(f"Could not open editor: {e}")
+
+        btn_frame = ctk.CTkFrame(editor, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=14, pady=(4, 14))
+
+        ctk.CTkButton(btn_frame, text="Save", command=_save, **BTN_START).pack(
+            side="right", padx=(6, 0)
+        )
+        ctk.CTkButton(btn_frame, text="Cancel", command=editor.destroy, **BTN_STANDARD).pack(
+            side="right"
+        )
+        ctk.CTkButton(btn_frame, text="Open in External Editor", command=_open_external, **BTN_STANDARD).pack(
+            side="left"
+        )
+
     def on_start_hunt(self):
         config = ConfigManager().get_config()
-        if not os.path.exists(config.encounter_template_path):
+
+        if config.use_custom_sequence:
+            seq_path = config.sequence_config_path
+            if not os.path.isabs(seq_path):
+                seq_path = os.path.join(os.getcwd(), seq_path.lstrip('./'))
+            try:
+                with open(seq_path, 'r', encoding='utf-8') as f:
+                    json.load(f)
+            except FileNotFoundError:
+                self.log_message(
+                    f"ERROR: Sequence config not found at '{seq_path}'. "
+                    "Click 'Edit Sequence Config' to create it."
+                )
+                return
+            except json.JSONDecodeError as e:
+                self.log_message(f"ERROR: Sequence config contains invalid JSON — {e}")
+                return
+        elif not os.path.exists(config.encounter_template_path):
             self.log_message(
                 "Warning: No encounter template set — pre-encounter screen guard is inactive. "
                 "Navigate to the pre-encounter screen and press 'Save Encounter Template'."

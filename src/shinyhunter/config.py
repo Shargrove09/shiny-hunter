@@ -40,6 +40,10 @@ class ShinyHunterConfig:
     # Safety
     failsafe_enabled: bool = False
 
+    # Custom encounter sequence
+    use_custom_sequence: bool = False
+    sequence_config_path: str = './encounter_sequence.json'
+
 class ConfigManager:
     _instance: Optional['ConfigManager'] = None
     _lock = threading.Lock()

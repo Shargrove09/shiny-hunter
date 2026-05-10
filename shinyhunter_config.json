@@ -16,5 +16,7 @@
   "calibration_mode": true,
   "calibration_reference_path": "./screenshots/calibration_reference.png",
   "encounter_template_path": "./screenshots/encounter_screen_template.png",
-  "failsafe_enabled": false
+  "failsafe_enabled": false,
+  "use_custom_sequence": true,
+  "sequence_config_path": "./encounter_sequence.json"
 }

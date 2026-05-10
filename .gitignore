@@ -10,3 +10,5 @@ screenshots
 *.pyd
 emulator_screenshot.png
 encounter_screen_template.png 
+
+CLAUDE.md
