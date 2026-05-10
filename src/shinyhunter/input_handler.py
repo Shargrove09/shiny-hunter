@@ -194,34 +194,34 @@ class InputHandler:
         self._jittered_sleep(self.config.encounter_delay)
 
     def encounter_sequence_with_verification(self, screenshot_manager, image_processor):
-        """Execute encounter sequence with verification steps."""
+        """Execute encounter sequence with pre-encounter state verification."""
         max_retries = self.config.max_encounter_retries
-        
+
         for attempt in range(max_retries):
             # Ensure target window is focused (Linux/macOS)
             if self.platform in ["Linux", "Darwin"]:
                 focused = self._ensure_window_focused()
                 if not focused:
                     print(f"Warning: Target window may not be focused")
-            
-            # Execute encounter
+
+            # Verify we're on the pre-encounter (overworld) screen BEFORE pressing X.
+            # If the game is still on a recap screen, the X presses would advance the
+            # recap instead of triggering the encounter, causing a false positive.
             time.sleep(0.25)
+            pre_check_path = screenshot_manager.take_screenshot('pre_encounter_check.png')
+            if not image_processor.is_on_encounter_screen(pre_check_path):
+                print(f"Not on pre-encounter screen, attempt {attempt + 1}/{max_retries}")
+                time.sleep(self.config.verification_delay)
+                continue
+
             print("PRESSING X")
             self._press_key('x')
             self._jittered_sleep(2.5)  # Wait for first press to register
             print("PRESSING X AGAIN")
             self._press_key('x')
             self._jittered_sleep(self.config.encounter_delay)
+            return True
 
-            
-            # Verify we reached encounter screen
-            screenshot_path = screenshot_manager.take_screenshot('verification_screenshot.png')
-            if image_processor.is_on_encounter_screen(screenshot_path):
-                return True
-                
-            print(f"Encounter sequence verification failed, attempt {attempt + 1}/{max_retries}")
-            time.sleep(self.config.verification_delay)  # Wait before retry
-            
         return False
     
     

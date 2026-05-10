@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 from datetime import datetime
 from config import ConfigManager
 
@@ -67,7 +68,23 @@ class ScreenshotManager:
             screenshot = ImageGrab.grab(bbox=bbox)
         
         filepath = os.path.join(self.screenshots_dir, filename)
-        screenshot.save(filepath)
+
+        # Write to a temp file in the same directory, then atomically replace the
+        # target.  os.replace only needs write permission on the parent directory,
+        # so it succeeds even when a previous run left the file owned by root or
+        # with read-only permissions.
+        fd, tmp_path = tempfile.mkstemp(dir=self.screenshots_dir, suffix='.png')
+        try:
+            os.close(fd)
+            screenshot.save(tmp_path)
+            os.replace(tmp_path, filepath)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+
         return filepath       
     def take_timestamped_screenshot(self, prefix: str = "screenshot") -> str:
         """Take a screenshot with timestamp in filename."""

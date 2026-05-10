@@ -2,6 +2,9 @@
 PyWinCtl-based window manager implementation.
 """
 
+import json
+import re
+import subprocess
 from typing import List, Optional, Any
 from .base import WindowManager, WindowInfo, EmbeddingMode
 
@@ -20,105 +23,406 @@ try:
 except ImportError:
     WIN32_AVAILABLE = False
 
-# Fallback imports
-    # pygetwindow raises NotImplementedError on unsupported platforms like Linux
-    PYGETWINDOW_AVAILABLE = False
+
+class GnomeWindowHandle:
+    """Window handle for pure-Wayland GNOME sessions.
+
+    Uses GNOME Shell DBus (gdbus) to activate/move/resize windows via
+    MetaWindow JS API.  No X11 required.
+    """
+
+    def __init__(self, wid: int):
+        self._wid = wid
+
+    def _eval(self, js: str):
+        try:
+            subprocess.run(
+                ['gdbus', 'call', '--session',
+                 '--dest', 'org.gnome.Shell',
+                 '--object-path', '/org/gnome/Shell',
+                 '--method', 'org.gnome.Shell.Eval', js],
+                capture_output=True, timeout=5
+            )
+        except FileNotFoundError:
+            print("gdbus not found — cannot control Wayland windows")
+        except Exception as e:
+            print(f"GNOME Shell eval error: {e}")
+
+    def _js_window(self) -> str:
+        return (
+            f"global.get_window_actors()"
+            f".map(a=>a.meta_window)"
+            f".find(w=>w.get_id()=={self._wid})"
+        )
+
+    def activate(self):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w){{w.activate(global.get_current_time());w.make_above();}}"
+        )
+
+    def raise_only(self):
+        """Raise window above others without stealing focus."""
+        self._eval(f"let w={self._js_window()};if(w)w.make_above();")
+
+    def set_always_above(self, above: bool = True):
+        """Set or remove always-on-top for this window via GNOME Shell DBus."""
+        if above:
+            self._eval(f"let w={self._js_window()};if(w)w.make_above();")
+        else:
+            self._eval(f"let w={self._js_window()};if(w)w.unmake_above();")
+
+    def moveTo(self, x: int, y: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.move_frame(true,{x},{y});"
+        )
+
+    def resizeTo(self, width: int, height: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.resize(true,{width},{height});"
+        )
+
+    def moveResizeTo(self, x: int, y: int, width: int, height: int):
+        self._eval(
+            f"let w={self._js_window()};"
+            f"if(w)w.move_resize_frame(true,{x},{y},{width},{height});"
+        )
+
+
+class LinuxWindowHandle:
+    """Wraps an X window ID and exposes a pywinctl-compatible interface.
+
+    Uses xdotool for operations (works on both X11 and XWayland/Wayland).
+    Falls back to wmctrl if xdotool is unavailable.
+    """
+
+    def __init__(self, xid: int):
+        self._xid = xid
+        self._hex = hex(xid)
+
+    def _run(self, *args):
+        try:
+            subprocess.run(list(args), timeout=5)
+        except FileNotFoundError:
+            pass  # tool not installed — silently skip
+        except Exception as e:
+            print(f"Window operation error ({args[0]}): {e}")
+
+    def activate(self):
+        # xdotool works on XWayland; wmctrl -i -a is X11-only
+        try:
+            subprocess.run(['xdotool', 'windowactivate', '--sync', str(self._xid)], timeout=5)
+            subprocess.run(['xdotool', 'windowraise', str(self._xid)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-a', self._hex)
+
+    def raise_only(self):
+        """Raise window in z-order without stealing keyboard focus."""
+        try:
+            subprocess.run(['xdotool', 'windowraise', str(self._xid)], timeout=5)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"windowraise error: {e}")
+
+    def set_always_above(self, above: bool = True):
+        """Set or remove _NET_WM_STATE_ABOVE via EWMH (python-xlib preferred, wmctrl fallback)."""
+        # Try python-xlib first — no external tools required
+        try:
+            import os
+            if not os.environ.get('DISPLAY'):
+                raise RuntimeError("No DISPLAY")
+            from Xlib import display as xdisplay, X
+            from Xlib.protocol import event as xevent
+
+            d = xdisplay.Display()
+            root = d.screen().root
+            wm_state = d.intern_atom('_NET_WM_STATE')
+            above_atom = d.intern_atom('_NET_WM_STATE_ABOVE')
+            win = d.create_resource_object('window', self._xid)
+
+            action = 1 if above else 0  # _NET_WM_STATE_ADD=1, _NET_WM_STATE_REMOVE=0
+            e = xevent.ClientMessage(
+                window=win,
+                client_type=wm_state,
+                data=(32, [action, int(above_atom), 0, 1, 0])
+            )
+            root.send_event(e, event_mask=X.SubstructureNotifyMask | X.SubstructureRedirectMask)
+            d.flush()
+            d.close()
+            print(f"_NET_WM_STATE_ABOVE {'added' if above else 'removed'} via python-xlib")
+            return
+        except ImportError:
+            pass  # python-xlib not available
+        except Exception as ex:
+            print(f"python-xlib set_always_above failed: {ex}")
+
+        # Fallback to wmctrl
+        prop = 'add' if above else 'remove'
+        self._run('wmctrl', '-i', '-r', self._hex, '-b', f'{prop},above')
+
+    def moveTo(self, x: int, y: int):
+        try:
+            subprocess.run(['xdotool', 'windowmove', str(self._xid), str(x), str(y)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},-1,-1')
+
+    def resizeTo(self, w: int, h: int):
+        try:
+            subprocess.run(['xdotool', 'windowsize', str(self._xid), str(w), str(h)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,-1,-1,{w},{h}')
+
+    def moveResizeTo(self, x: int, y: int, w: int, h: int):
+        try:
+            subprocess.run(['xdotool', 'windowmove', str(self._xid), str(x), str(y)], timeout=5)
+            subprocess.run(['xdotool', 'windowsize', str(self._xid), str(w), str(h)], timeout=5)
+        except FileNotFoundError:
+            self._run('wmctrl', '-i', '-r', self._hex, '-e', f'0,{x},{y},{w},{h}')
 
 
 class PyWinCtlManager(WindowManager):
     """Window manager using PyWinCtl for cross-platform functionality."""
-    
+
     def __init__(self):
         super().__init__()
-        
+
         if not PYWINCTL_AVAILABLE:
             raise ImportError("PyWinCtl is required but not available")
-        
+
         self.use_win32_embedding = (self.platform == "Windows" and WIN32_AVAILABLE)
         self._embedded_windows = {}  # Track embedded windows
-        
+
         print(f"PyWinCtlManager initialized for {self.platform}")
         if self.use_win32_embedding:
             print("Using Win32 API for advanced embedding features")
-    
+
     def get_all_windows(self) -> List[WindowInfo]:
         """Get information about all available windows using PyWinCtl."""
+        if self.platform == "Linux":
+            return self._get_all_windows_linux()
+
         windows = []
-        
+
         try:
             pywinctl_windows = pywinctl.getAllWindows()
-            print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
-            print(f"Sample window titles: {[w.title for w in pywinctl_windows[:5]]}")
-            for window in pywinctl_windows:
-                try:
-                    # Filter out windows without titles or that are not visible
-                    if not window.title or not window.visible:
-                        continue
-                    
-                    # Get window ID - PyWinCtl uses 'wid' for window ID
-                    wid = getattr(window, 'wid', 0)
-                        
-                    window_info = WindowInfo(
-                        title=window.title,
-                        handle=window,  # Store the PyWinCtl window object
-                        pid=wid,
-                        geometry=(window.left, window.top, window.width, window.height),
-                        is_visible=window.visible,
-                        is_minimized=window.isMinimized
-                    )
-                    windows.append(window_info)
-                    
-                except Exception as e:
-                    # Skip windows that cause errors (common with system windows)
-                    continue
-                    
         except Exception as e:
             print(f"Error enumerating windows: {e}")
-            
+            return windows
+
+        print(f"Found {len(pywinctl_windows)} windows via PyWinCtl")
+
+        for window in pywinctl_windows:
+            try:
+                if not window.title or not window.visible:
+                    continue
+
+                wid = getattr(window, 'wid', 0)
+
+                windows.append(WindowInfo(
+                    title=window.title,
+                    handle=window,
+                    pid=wid,
+                    geometry=(window.left, window.top, window.width, window.height),
+                    is_visible=window.visible,
+                    is_minimized=window.isMinimized,
+                ))
+
+            except Exception:
+                continue
+
         return windows
-    
+
+    def _get_all_windows_linux(self) -> List[WindowInfo]:
+        """Enumerate windows on Linux.
+
+        Tries in order:
+        1. GNOME Shell DBus (pure Wayland, GNOME)
+        2. python-xlib (X11 / XWayland)
+        3. xdotool search (X11 / XWayland fallback)
+        """
+        windows = self._enumerate_via_gnome_shell()
+        if not windows:
+            windows = self._enumerate_via_xlib()
+        if not windows:
+            windows = self._enumerate_via_xdotool()
+        return windows
+
+    def _enumerate_via_gnome_shell(self) -> List[WindowInfo]:
+        """Enumerate windows via GNOME Shell DBus (works on pure Wayland)."""
+        windows = []
+        try:
+            js = (
+                "JSON.stringify("
+                "global.get_window_actors()"
+                ".map(a=>a.meta_window)"
+                ".filter(w=>!w.is_skip_taskbar()&&w.get_title())"
+                ".map(w=>({id:w.get_id(),title:w.get_title()}))"
+                ")"
+            )
+            result = subprocess.run(
+                ['gdbus', 'call', '--session',
+                 '--dest', 'org.gnome.Shell',
+                 '--object-path', '/org/gnome/Shell',
+                 '--method', 'org.gnome.Shell.Eval', js],
+                capture_output=True, text=True, timeout=5
+            )
+            # gdbus output: (@(bs) (true, '[{"id":1,"title":"foo"}]'),)
+            # Extract the JSON array
+            out = result.stdout
+            start = out.find('[')
+            end = out.rfind(']')
+            if start == -1 or end == -1:
+                return windows
+            data = json.loads(out[start:end + 1])
+            seen = set()
+            for entry in data:
+                title = entry.get('title', '').strip()
+                wid = entry.get('id')
+                if title and wid is not None and title not in seen:
+                    seen.add(title)
+                    windows.append(WindowInfo(
+                        title=title,
+                        handle=GnomeWindowHandle(int(wid)),
+                        pid=0,
+                        geometry=(0, 0, 0, 0),
+                        is_visible=True,
+                        is_minimized=False,
+                    ))
+        except FileNotFoundError:
+            pass  # gdbus not available — not a GNOME system
+        except Exception as e:
+            print(f"GNOME Shell enumeration error: {e}")
+        return windows
+
+    def _enumerate_via_xlib(self) -> List[WindowInfo]:
+        windows = []
+        try:
+            import os
+            if not os.environ.get('DISPLAY'):
+                return windows
+            from Xlib import X, display as xdisplay
+            d = xdisplay.Display()
+            root = d.screen().root
+            seen_xids = set()
+
+            def _walk(win, depth=0):
+                if depth > 6:
+                    return
+                try:
+                    wm_class = win.get_wm_class()
+                    if wm_class:
+                        xid = win.id
+                        if xid not in seen_xids:
+                            name = win.get_wm_name()
+                            title = name.strip() if isinstance(name, str) else ""
+                            if title:
+                                seen_xids.add(xid)
+                                windows.append(WindowInfo(
+                                    title=title,
+                                    handle=LinuxWindowHandle(xid),
+                                    pid=0,
+                                    geometry=(0, 0, 0, 0),
+                                    is_visible=True,
+                                    is_minimized=False,
+                                ))
+                except Exception:
+                    pass
+                try:
+                    for child in win.query_tree().children:
+                        _walk(child, depth + 1)
+                except Exception:
+                    pass
+
+            _walk(root)
+            d.close()
+        except ImportError:
+            print("python-xlib not available, trying xdotool fallback")
+        except Exception as e:
+            print(f"python-xlib enumeration error: {e}")
+        return windows
+
+    def _enumerate_via_xdotool(self) -> List[WindowInfo]:
+        """Fallback: enumerate windows via xdotool search."""
+        windows = []
+        try:
+            result = subprocess.run(
+                ['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                capture_output=True, text=True, timeout=5
+            )
+            xids = [int(x) for x in result.stdout.strip().splitlines() if x.strip()]
+            seen_titles = set()
+            for xid in xids:
+                try:
+                    name_result = subprocess.run(
+                        ['xdotool', 'getwindowname', str(xid)],
+                        capture_output=True, text=True, timeout=2
+                    )
+                    title = name_result.stdout.strip()
+                    if title and title not in seen_titles:
+                        seen_titles.add(title)
+                        windows.append(WindowInfo(
+                            title=title,
+                            handle=LinuxWindowHandle(xid),
+                            pid=0,
+                            geometry=(0, 0, 0, 0),
+                            is_visible=True,
+                            is_minimized=False,
+                        ))
+                except Exception:
+                    continue
+        except FileNotFoundError:
+            print("xdotool not found — install with: sudo apt-get install xdotool")
+        except Exception as e:
+            print(f"xdotool enumeration error: {e}")
+        return windows
+
     def get_window_by_title(self, title: str) -> Optional[WindowInfo]:
         """Find a window by its title."""
+        if self.platform == "Linux":
+            for w in self._get_all_windows_linux():
+                if w.title == title:
+                    return w
+            return None
+
         try:
             windows = pywinctl.getWindowsWithTitle(title)
             if windows:
-                window = windows[0]  # Get first match
-                # Get window ID - PyWinCtl uses 'wid' for window ID
+                window = windows[0]
                 wid = getattr(window, 'wid', 0)
-                    
                 return WindowInfo(
                     title=window.title,
                     handle=window,
                     pid=wid,
                     geometry=(window.left, window.top, window.width, window.height),
                     is_visible=window.visible,
-                    is_minimized=window.isMinimized
+                    is_minimized=window.isMinimized,
                 )
         except Exception as e:
             print(f"Error finding window by title '{title}': {e}")
-            
+
         return None
-    
+
     def get_window_by_handle(self, handle: Any) -> Optional[WindowInfo]:
         """Get window information by handle (PyWinCtl window object)."""
         try:
-            if hasattr(handle, 'title'):  # It's a PyWinCtl window object
-                # Get window ID - PyWinCtl uses 'wid' for window ID
+            if hasattr(handle, 'title'):
                 wid = getattr(handle, 'wid', 0)
-                    
                 return WindowInfo(
                     title=handle.title,
                     handle=handle,
                     pid=wid,
                     geometry=(handle.left, handle.top, handle.width, handle.height),
                     is_visible=handle.visible,
-                    is_minimized=handle.isMinimized
+                    is_minimized=handle.isMinimized,
                 )
         except Exception as e:
             print(f"Error getting window info by handle: {e}")
-            
+
         return None
-    
+
     def embed_window(self, window_info: WindowInfo, parent_widget: Any) -> bool:
         """Embed a window into a parent widget."""
         try:
@@ -129,79 +433,67 @@ class PyWinCtlManager(WindowManager):
         except Exception as e:
             print(f"Error embedding window: {e}")
             return False
-    
+
     def _embed_window_win32(self, window_info: WindowInfo, parent_widget: Any) -> bool:
         """Embed window using Win32 API for full functionality."""
         try:
-            # Get the native handle from PyWinCtl window
             pywinctl_window = window_info.handle
-            
-            # Try to get Win32 handle - this might need adjustment based on PyWinCtl version
+
             if hasattr(pywinctl_window, '_hWnd'):
                 win32_handle = pywinctl_window._hWnd
             elif hasattr(pywinctl_window, 'getHandle'):
                 win32_handle = pywinctl_window.getHandle()
             else:
-                # Fallback: find window by title
                 win32_handle = win32gui.FindWindow(None, window_info.title)
-                
+
             if not win32_handle:
                 print(f"Could not get Win32 handle for window: {window_info.title}")
                 return False
-            
-            # Capture the original parent before reparenting
+
             original_parent = win32gui.GetParent(win32_handle)
-            
-            # Get parent widget's window ID
             parent_id = int(parent_widget.winfo_id())
-            
-            # Embed the window
+
             win32gui.SetParent(win32_handle, parent_id)
-            
-            # Resize and position the embedded window
+
             parent_width = parent_widget.winfo_width()
             parent_height = parent_widget.winfo_height()
-            
+
             win32gui.MoveWindow(win32_handle, 0, 0, parent_width, parent_height, True)
             win32gui.ShowWindow(win32_handle, win32con.SW_SHOW)
-            
-            # Track the embedded window
+
             self._embedded_windows[window_info.title] = {
                 'win32_handle': win32_handle,
                 'parent_widget': parent_widget,
-                'original_parent': original_parent
+                'original_parent': original_parent,
             }
-            
+
             print(f"Successfully embedded window: {window_info.title}")
             return True
-            
+
         except Exception as e:
             print(f"Win32 embedding failed: {e}")
             return False
-    
+
     def _embed_window_fallback(self, window_info: WindowInfo, parent_widget: Any) -> bool:
         """Fallback embedding using positioning (for non-Windows platforms)."""
         try:
-            # Position window next to parent
             parent_x = parent_widget.winfo_rootx()
             parent_y = parent_widget.winfo_rooty()
             parent_width = parent_widget.winfo_width()
-            
-            # Position the window to the right of the parent
+
             new_x = parent_x + parent_width + 10
             new_y = parent_y
-            
-            pywinctl_window = window_info.handle
-            pywinctl_window.moveTo(new_x, new_y)
-            pywinctl_window.activate()
-            
+
+            window_info.handle.moveTo(new_x, new_y)
+            window_info.handle.activate()
+
             print(f"Positioned window beside parent: {window_info.title}")
             return True
-            
+
         except Exception as e:
             print(f"Fallback positioning failed: {e}")
             return False
-    
+
     def unembed_window(self, window_info: WindowInfo) -> bool:
         """Remove window embedding."""
         try:
@@ -212,128 +504,113 @@ class PyWinCtlManager(WindowManager):
         except Exception as e:
             print(f"Error unembedding window: {e}")
             return False
-    
+
     def _unembed_window_win32(self, window_info: WindowInfo) -> bool:
         """Unembed window using Win32 API."""
         try:
             embedded_info = self._embedded_windows.get(window_info.title)
             if not embedded_info:
                 return False
-                
+
             win32_handle = embedded_info['win32_handle']
             original_parent = embedded_info.get('original_parent')
-            
-            # Restore original parent, fall back to desktop (0) if original_parent is missing or None
+
             if original_parent is not None and isinstance(original_parent, int):
                 win32gui.SetParent(win32_handle, original_parent)
             else:
                 win32gui.SetParent(win32_handle, 0)
-            
-            # Remove from tracking
+
             del self._embedded_windows[window_info.title]
-            
+
             print(f"Successfully unembedded window: {window_info.title}")
             return True
-            
+
         except Exception as e:
             print(f"Win32 unembedding failed: {e}")
             return False
-    
+
     def _unembed_window_fallback(self, window_info: WindowInfo) -> bool:
-        """Fallback unembedding (just activate the window)."""
+        """Fallback unembedding (remove always-on-top and activate the window)."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.activate()
+            if hasattr(window_info.handle, 'set_always_above'):
+                window_info.handle.set_always_above(False)
+            window_info.handle.activate()
             return True
         except Exception as e:
             print(f"Fallback unembedding failed: {e}")
             return False
-    
+
     def position_window_beside(self, window_info: WindowInfo, reference_window: Any) -> bool:
         """Position window beside a reference window (legacy method)."""
         try:
-            pywinctl_window = window_info.handle
-            
-            # Get reference window position
             ref_x = reference_window.winfo_rootx()
             ref_y = reference_window.winfo_rooty()
             ref_width = reference_window.winfo_width()
-            
-            # Position to the right with some padding
+
             new_x = ref_x + ref_width + 20
             new_y = ref_y
-            
-            pywinctl_window.moveTo(new_x, new_y)
+
+            window_info.handle.moveTo(new_x, new_y)
             return True
-            
+
         except Exception as e:
             print(f"Error positioning window: {e}")
             return False
-    
+
     def position_window_in_boundary(self, window_info: WindowInfo, boundary: tuple) -> bool:
-        """
-        Position and resize window to fit within a defined boundary.
-        
-        Args:
-            window_info: The window to position
-            boundary: (x, y, width, height) defining the boundary area
-            
-        Returns:
-            True if successful, False otherwise
-        """
         try:
-            pywinctl_window = window_info.handle
             x, y, width, height = boundary
-            
-            # First resize the window to fit the boundary
-            pywinctl_window.resizeTo(width, height)
-            
-            # Then move it to the boundary position
-            pywinctl_window.moveTo(x, y)
-            
+            handle = window_info.handle
+            if hasattr(handle, 'moveResizeTo'):
+                handle.moveResizeTo(x, y, width, height)
+            else:
+                handle.resizeTo(width, height)
+                handle.moveTo(x, y)
+            # Raise above tkinter UI (Linux/macOS companion mode)
+            if hasattr(handle, 'set_always_above'):
+                handle.set_always_above(True)
             print(f"Positioned window in boundary: ({x}, {y}, {width}, {height})")
             return True
-            
         except Exception as e:
             print(f"Error positioning window in boundary: {e}")
             return False
-    
+
     def raise_window(self, window_info: WindowInfo) -> bool:
-        """Raise window above others (stacking order)."""
         try:
-            pywinctl_window = window_info.handle
-            # PyWinCtl's activate() typically raises the window as well
-            pywinctl_window.activate()
+            handle = window_info.handle
+            # Prefer raise_only so we don't steal keyboard focus from the tkinter UI
+            if hasattr(handle, 'raise_only'):
+                handle.raise_only()
+            else:
+                handle.activate()
             return True
         except Exception as e:
             print(f"Error raising window: {e}")
             return False
-    
+
     def focus_window(self, window_info: WindowInfo) -> bool:
-        """Bring window to front and focus it."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.activate()
+            window_info.handle.activate()
             return True
         except Exception as e:
             print(f"Error focusing window: {e}")
             return False
-    
+
     def resize_window(self, window_info: WindowInfo, width: int, height: int) -> bool:
-        """Resize a window to specified dimensions."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.resizeTo(width, height)
+            if window_info.title in self._embedded_windows:
+                win32_handle = self._embedded_windows[window_info.title]['win32_handle']
+                win32gui.MoveWindow(win32_handle, 0, 0, width, height, True)
+                return True
+            window_info.handle.resizeTo(width, height)
             return True
         except Exception as e:
             print(f"Error resizing window: {e}")
             return False
-    
+
     def move_window(self, window_info: WindowInfo, x: int, y: int) -> bool:
-        """Move window to specified position."""
         try:
-            pywinctl_window = window_info.handle
-            pywinctl_window.moveTo(x, y)
+            window_info.handle.moveTo(x, y)
             return True
         except Exception as e:
             print(f"Error moving window: {e}")

@@ -1,15 +1,20 @@
 import cv2
+import logging
 import os
 from typing import List
 import statistics
 from config import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 class ImageProcessor:
     def __init__(self):
         self.config = ConfigManager().get_config()
     
     def is_on_encounter_screen(self, screenshot_path: str) -> bool:
-        """Verify we're on the encounter screen before checking for shiny."""
+        """Verify we're on the stable pre-encounter (overworld) screen before triggering the encounter.
+        Template should be a screenshot of the overworld state just before pressing X to start the encounter.
+        Returns True (skip validation) if no template file exists yet."""
         if not os.path.exists(screenshot_path):
             return False
             
@@ -35,20 +40,14 @@ class ImageProcessor:
         """Check if a shiny Pokemon is found by comparing reference image to screenshot of current encounter."""
         if not os.path.exists(ref_img_path) or not os.path.exists(screenshot_path):
             return False
-            
-        # First validate we're on the correct screen
-        if not self.is_on_encounter_screen(screenshot_path):
-            return False
-            
+
         correlation = self.get_correlation(ref_img_path, screenshot_path)
-        print(f"Correlation: {correlation}")
         effective_threshold = self.config.correlation_threshold - self.config.correlation_tolerance
         is_shiny = correlation < effective_threshold
-        print(
-            f"Shiny check: correlation={correlation:.6f}, "
-            f"threshold={self.config.correlation_threshold:.6f}, "
-            f"tolerance={self.config.correlation_tolerance:.6f}, "
-            f"effective_threshold={effective_threshold:.6f}, shiny={is_shiny}"
+        logger.debug(
+            "Shiny check: correlation=%.6f, threshold=%.6f, tolerance=%.6f, effective_threshold=%.6f, shiny=%s",
+            correlation, self.config.correlation_threshold, self.config.correlation_tolerance,
+            effective_threshold, is_shiny,
         )
         return is_shiny
     
