@@ -1,8 +1,9 @@
 {
-  "description": "Custom encounter sequence. Step types: press | pause | hold | combo. Keys: x (A button), z (B button), enter (Start), backspace (Select)",
+  "description": "Custom encounter sequence. Supported step types: press | pause | hold | combo | verify_screen | check_shiny. Input keys: x (A button), z (B button), enter (Start), backspace (Select). verify_screen takes a screenshot and checks it against the encounter template — fails to restart if wrong screen. check_shiny compares the screenshot to your calibration reference — stops the hunt if shiny, restarts if not. Both screenshot steps use config defaults but accept optional overrides (threshold, reference_path).",
   "encounter_sequence": [
     {"type": "press", "key": "x", "delay_after": 0.5},
     {"type": "pause", "duration": 2.5},
-    {"type": "press", "key": "x", "delay_after": 5.0}
+    {"type": "press", "key": "x", "delay_after": 5.0},
+    {"type": "check_shiny"}
   ]
 }

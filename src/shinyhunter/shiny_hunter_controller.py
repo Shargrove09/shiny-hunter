@@ -51,6 +51,39 @@ class ShinyHunterController:
             time.sleep(1)
             seconds -= 1
     
+    def _run_sequence(self, steps: list) -> str:
+        """Execute a full custom sequence (input + screenshot steps).
+
+        Returns one of: 'shiny' | 'verify_fail' | 'no_shiny' | 'complete'
+        """
+        self.input_handler.ensure_window_focused()
+
+        for step in steps:
+            t = step.get("type")
+
+            if t in ("press", "pause", "hold", "combo"):
+                self.input_handler.execute_input_step(step)
+
+            elif t == "verify_screen":
+                path = self.screenshot_manager.take_screenshot('seq_verify.png')
+                if not self.image_processor.is_on_encounter_screen(path):
+                    self.log("verify_screen: wrong screen — restarting")
+                    return "verify_fail"
+                self.log("verify_screen: screen confirmed")
+
+            elif t == "check_shiny":
+                path = self.screenshot_manager.take_screenshot('current_screenshot.png')
+                ref = step.get("reference_path", self.config.calibration_reference_path)
+                if self.image_processor.is_shiny_found(ref, path):
+                    return "shiny"
+                self.log("check_shiny: no shiny — restarting")
+                return "no_shiny"
+
+            else:
+                self.log(f"Warning: unknown step type '{t}', skipping")
+
+        return "complete"
+
     def _load_custom_sequence_steps(self):
         """Load encounter steps from the sequence config JSON.
 
@@ -83,12 +116,15 @@ class ShinyHunterController:
                     self.running = False
                     break
 
-                self.input_handler.execute_custom_sequence(steps)
+                result = self._run_sequence(steps)
                 self.increment_count()
                 self.log(f"Attempt #{self.count}")
-                # TODO: placeholder — shiny detection for custom sequence
-                self.log("Shiny check: placeholder (not yet implemented for custom mode)")
-                self._handle_no_shiny()
+
+                if result == "shiny":
+                    self._handle_shiny_found()
+                    break
+                else:
+                    self._handle_no_shiny()
 
             else:
                 # --- Static mode ---
