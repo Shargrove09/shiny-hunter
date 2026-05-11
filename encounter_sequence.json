@@ -32,7 +32,7 @@
     {
       "type": "press",
       "key": "x",
-      "delay_after": 0.4
+      "delay_after": 2.5
     },
     {
       "type": "press",
@@ -46,7 +46,7 @@
     },
     {
       "type": "pause",
-      "duration": 2.0
+      "duration": 1.5
     },
     {
       "type": "press",
@@ -57,6 +57,10 @@
       "type": "press",
       "key": "x",
       "delay_after": 0.4
+    },
+    {
+      "type": "pause",
+      "duration": 2.0
     },
     {
       "type": "press",
@@ -74,18 +78,47 @@
       "delay_after": 0.4
     },
     {
+      "type": "pause",
+      "duration": 1.0
+    },
+    {
       "type": "check_shiny"
     },
     {
       "type": "combo",
-      "keys": ["x", "z", "enter", "backspace"],
+      "keys": [
+        "x",
+        "z",
+        "enter",
+        "backspace"
+      ],
       "hold_duration": 0.2,
       "delay_after": 4.0
     },
-    { "type": "press", "key": "enter", "delay_after": 3.5 },
-    { "type": "press", "key": "enter", "delay_after": 2.0 },
-    { "type": "press", "key": "enter", "delay_after": 3.0 },
-    { "type": "press", "key": "x", "delay_after": 1.0 },
-    { "type": "press", "key": "z", "delay_after": 4.0 }
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 3.5
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 2.0
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 3.0
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 1.0
+    },
+    {
+      "type": "press",
+      "key": "z",
+      "delay_after": 4.0
+    }
   ]
 }

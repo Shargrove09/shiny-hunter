@@ -1,8 +1,8 @@
 {
-  "screenshot_region_x": 1180,
+  "screenshot_region_x": 100,
   "screenshot_region_y": 132,
   "emulator_width": 1290,
-  "emulator_height": 900,
+  "emulator_height": 500,
   "pyautogui_pause": 2.0,
   "input_pause": 0.7,
   "encounter_delay": 5.0,
