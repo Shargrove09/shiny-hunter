@@ -75,6 +75,17 @@
     },
     {
       "type": "check_shiny"
-    }
+    },
+    {
+      "type": "combo",
+      "keys": ["x", "z", "enter", "backspace"],
+      "hold_duration": 0.2,
+      "delay_after": 4.0
+    },
+    { "type": "press", "key": "enter", "delay_after": 3.5 },
+    { "type": "press", "key": "enter", "delay_after": 2.0 },
+    { "type": "press", "key": "enter", "delay_after": 3.0 },
+    { "type": "press", "key": "x", "delay_after": 1.0 },
+    { "type": "press", "key": "z", "delay_after": 4.0 }
   ]
 }
