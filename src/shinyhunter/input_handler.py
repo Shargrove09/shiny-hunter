@@ -127,16 +127,24 @@ class InputHandler:
         if self.input_method == "pynput":
             return {
                 'x': 'x',
-                'z': 'z', 
+                'z': 'z',
                 'enter': Key.enter,
-                'backspace': Key.backspace
+                'backspace': Key.backspace,
+                'up': Key.up,
+                'down': Key.down,
+                'left': Key.left,
+                'right': Key.right,
             }
         else:  # pyautogui
             return {
                 'x': 'x',
                 'z': 'z',
                 'enter': 'enter',
-                'backspace': 'backspace'
+                'backspace': 'backspace',
+                'up': 'up',
+                'down': 'down',
+                'left': 'left',
+                'right': 'right',
             }
     
     def _press_key(self, key, ensure_focus=False):
