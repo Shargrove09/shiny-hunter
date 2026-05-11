@@ -12,6 +12,10 @@ class ShinyHunterConfig:
     screenshot_region_y: int = 132
     emulator_width: int = 1290
     emulator_height: int = 900
+    # Optional capture crop — if set, the screenshot is limited to this size
+    # instead of the full emulator boundary. Set to 0 to use the boundary size.
+    screenshot_capture_width: int = 0
+    screenshot_capture_height: int = 0
     
     # Input delays
     pyautogui_pause: float = 2.0
