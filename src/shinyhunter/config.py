@@ -39,7 +39,8 @@ class ShinyHunterConfig:
     
     # File paths
     calibration_reference_path: str = './screenshots/calibration_reference.png'
-    encounter_template_path: str = './screenshots/encounter_screen_template.png'
+    pre_encounter_template_path: str = './screenshots/encounter_screen_template.png'
+    encounter_template_path: str = './screenshots/battle_screen_template.png'
     
     # Safety
     failsafe_enabled: bool = False
@@ -76,6 +77,11 @@ class ConfigManager:
         try:
             with open(self._config_file_path, 'r', encoding='utf-8') as config_file:
                 data = json.load(config_file)
+
+            # Migrate: old configs stored the overworld template under encounter_template_path.
+            # It is now pre_encounter_template_path; encounter_template_path is the battle screen.
+            if 'encounter_template_path' in data and 'pre_encounter_template_path' not in data:
+                self.config.pre_encounter_template_path = data.pop('encounter_template_path')
 
             for key, value in data.items():
                 if hasattr(self.config, key):

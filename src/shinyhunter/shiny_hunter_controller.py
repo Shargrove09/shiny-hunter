@@ -65,11 +65,18 @@ class ShinyHunterController:
                 self.input_handler.execute_input_step(step)
 
             elif t == "verify_screen":
+                template_key = step.get("template", "pre_encounter")
+                if "template_path" in step:
+                    resolved_template = step["template_path"]
+                elif template_key == "encounter":
+                    resolved_template = self.config.encounter_template_path
+                else:
+                    resolved_template = self.config.pre_encounter_template_path
                 path = self.screenshot_manager.take_screenshot('seq_verify.png')
-                if not self.image_processor.is_on_encounter_screen(path):
-                    self.log("verify_screen: wrong screen — restarting")
+                if not self.image_processor.is_on_encounter_screen(path, resolved_template):
+                    self.log(f"verify_screen ({template_key}): wrong screen — restarting")
                     return "verify_fail"
-                self.log("verify_screen: screen confirmed")
+                self.log(f"verify_screen ({template_key}): screen confirmed")
 
             elif t == "check_shiny":
                 path = self.screenshot_manager.take_screenshot('current_screenshot.png')

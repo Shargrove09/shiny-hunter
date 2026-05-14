@@ -11,15 +11,17 @@ class ImageProcessor:
     def __init__(self):
         self.config = ConfigManager().get_config()
     
-    def is_on_encounter_screen(self, screenshot_path: str) -> bool:
-        """Verify we're on the stable pre-encounter (overworld) screen before triggering the encounter.
-        Template should be a screenshot of the overworld state just before pressing X to start the encounter.
-        Returns True (skip validation) if no template file exists yet."""
+    def is_on_encounter_screen(self, screenshot_path: str, template_path: str = None) -> bool:
+        """Verify the current screen matches a template via template matching.
+
+        Defaults to pre_encounter_template_path (overworld) when no template_path given.
+        Returns True (skip validation) if the template file doesn't exist yet.
+        """
         if not os.path.exists(screenshot_path):
             return False
-            
+
         # Define template image that should appear on encounter screen
-        encounter_template_path = self.config.encounter_template_path
+        encounter_template_path = template_path or self.config.pre_encounter_template_path
         if not os.path.exists(encounter_template_path):
             #TODO: Log warning about missing template 
             return True  # Skip validation if template doesn't exist

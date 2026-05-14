@@ -1,8 +1,9 @@
 {
-  "description": "Custom encounter sequence. Supported step types: press | pause | hold | combo | verify_screen | check_shiny. Input keys: x (A button), z (B button), enter (Start), backspace (Select), up | down | left | right (D-pad). verify_screen takes a screenshot and checks it against the encounter template \u2014 fails to restart if wrong screen. check_shiny compares the screenshot to your calibration reference \u2014 stops the hunt if shiny, restarts if not. Both screenshot steps use config defaults but accept optional overrides (threshold, reference_path).",
+  "description": "Custom encounter sequence. Step types: press | pause | hold | combo | verify_screen | check_shiny. Keys: x (A), z (B), enter (Start), backspace (Select), up | down | left | right (D-pad). verify_screen: add 'template' field \u2014 'pre_encounter' (default, overworld screen saved via Save Pre-Encounter Template) or 'encounter' (battle screen saved via Save Encounter Template). Or override with explicit 'template_path'. check_shiny stops hunt on shiny, restarts otherwise; optional 'reference_path' override.",
   "encounter_sequence": [
     {
-      "type": "verify_screen"
+      "type": "verify_screen",
+      "template": "pre_encounter"
     },
     {
       "type": "press",
@@ -82,16 +83,15 @@
       "duration": 1.0
     },
     {
+      "type": "verify_screen",
+      "template": "encounter"
+    },
+    {
       "type": "check_shiny"
     },
     {
       "type": "combo",
-      "keys": [
-        "x",
-        "z",
-        "enter",
-        "backspace"
-      ],
+      "keys": ["x", "z", "enter", "backspace"],
       "hold_duration": 0.2,
       "delay_after": 4.0
     },

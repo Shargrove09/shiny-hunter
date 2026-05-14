@@ -108,13 +108,21 @@ class ShinyHuntGUI:
             self.left_frame, text="Settings", command=self.open_settings, **BTN_STANDARD)
         self.settings_button.grid(row=6, column=0, pady=10, padx=10, sticky="ew")
 
-        # Save Encounter Template Button
+        # Save Pre-Encounter Template Button (overworld/field screen before inputs)
+        ctk.CTkButton(
+            self.left_frame,
+            text="Save Pre-Encounter Template",
+            command=self._save_pre_encounter_template,
+            **BTN_STANDARD
+        ).grid(row=7, column=0, pady=(10, 2), padx=10, sticky="ew")
+
+        # Save Encounter Template Button (battle screen after encounter loads)
         ctk.CTkButton(
             self.left_frame,
             text="Save Encounter Template",
             command=self._save_encounter_template,
             **BTN_STANDARD
-        ).grid(row=7, column=0, pady=10, padx=10, sticky="ew")
+        ).grid(row=8, column=0, pady=(2, 10), padx=10, sticky="ew")
 
         # Encounter Method Section
         self._create_method_section()
@@ -484,16 +492,26 @@ class ShinyHuntGUI:
         self.log_text.configure(state='disabled')
         self.log_text.see('end')
 
-    def _save_encounter_template(self):
+    def _save_pre_encounter_template(self):
+        """Save the overworld/field screen shown before inputs fire."""
         path = self.screenshot_manager.take_screenshot("encounter_screen_template.png")
-        self.log_message(f"Encounter template saved to: {path}")
+        ConfigManager().get_config().pre_encounter_template_path = path
+        self.log_message(f"Pre-encounter template saved: {path}")
+
+    def _save_encounter_template(self):
+        """Save the battle screen shown after the encounter loads."""
+        path = self.screenshot_manager.take_screenshot("battle_screen_template.png")
+        config = ConfigManager().get_config()
+        config.encounter_template_path = path
+        ConfigManager().save_config()
+        self.log_message(f"Encounter (battle) template saved: {path}")
 
     def _create_method_section(self):
         """Create the encounter method toggle section in the left frame."""
         config = ConfigManager().get_config()
 
         method_frame = ctk.CTkFrame(self.left_frame)
-        method_frame.grid(row=8, column=0, pady=(10, 0), padx=10, sticky="ew")
+        method_frame.grid(row=9, column=0, pady=(10, 0), padx=10, sticky="ew")
         method_frame.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(method_frame, text="Encounter Method", font=FONT_BOLD).pack(
@@ -645,10 +663,10 @@ class ShinyHuntGUI:
             except json.JSONDecodeError as e:
                 self.log_message(f"ERROR: Sequence config contains invalid JSON — {e}")
                 return
-        elif not os.path.exists(config.encounter_template_path):
+        elif not os.path.exists(config.pre_encounter_template_path):
             self.log_message(
-                "Warning: No encounter template set — pre-encounter screen guard is inactive. "
-                "Navigate to the pre-encounter screen and press 'Save Encounter Template'."
+                "Warning: No pre-encounter template set — screen guard is inactive. "
+                "Navigate to the overworld screen and press 'Save Pre-Encounter Template'."
             )
 
         self.status_label.configure(text="Mewtwo Hunt in progress...")
