@@ -90,6 +90,10 @@ class InputHandler:
         self.target_window = window_info
         print(f"Target window set to: {window_info.title if window_info else 'None'}")
     
+    def ensure_window_focused(self):
+        """Ensure the target window has focus before sending keystrokes."""
+        return self._ensure_window_focused()
+
     def _ensure_window_focused(self):
         """Ensure the target window has focus before sending keystrokes."""
         if not self.target_window:
@@ -123,16 +127,24 @@ class InputHandler:
         if self.input_method == "pynput":
             return {
                 'x': 'x',
-                'z': 'z', 
+                'z': 'z',
                 'enter': Key.enter,
-                'backspace': Key.backspace
+                'backspace': Key.backspace,
+                'up': Key.up,
+                'down': Key.down,
+                'left': Key.left,
+                'right': Key.right,
             }
         else:  # pyautogui
             return {
                 'x': 'x',
                 'z': 'z',
                 'enter': 'enter',
-                'backspace': 'backspace'
+                'backspace': 'backspace',
+                'up': 'up',
+                'down': 'down',
+                'left': 'left',
+                'right': 'right',
             }
     
     def _press_key(self, key, ensure_focus=False):
@@ -223,8 +235,56 @@ class InputHandler:
             return True
 
         return False
-    
-    
+
+    def execute_input_step(self, step: dict):
+        """Execute a single input step dict (press / pause / hold / combo).
+
+        Screenshot-type steps (verify_screen, check_shiny) are not handled here —
+        those are dispatched by the controller which has access to image processing.
+        """
+        step_type = step.get("type")
+        print(f"[SEQ] step: {step}")
+
+        if step_type == "press":
+            self._press_key(step["key"], ensure_focus=False)
+            delay = step.get("delay_after", 0)
+            if delay > 0:
+                self._jittered_sleep(delay)
+
+        elif step_type == "pause":
+            self._jittered_sleep(step.get("duration", 0))
+
+        elif step_type == "hold":
+            key = step["key"]
+            self._key_down(key)
+            time.sleep(step.get("duration", 0.1))
+            self._key_up(key)
+            delay = step.get("delay_after", 0)
+            if delay > 0:
+                self._jittered_sleep(delay)
+
+        elif step_type == "combo":
+            keys = step.get("keys", [])
+            for k in keys:
+                self._key_down(k)
+            time.sleep(step.get("hold_duration", 0.2))
+            for k in keys:
+                self._key_up(k)
+            delay = step.get("delay_after", 0)
+            if delay > 0:
+                self._jittered_sleep(delay)
+
+        else:
+            print(f"[SEQ] Warning: unknown input step type '{step_type}', skipping")
+
+    def execute_custom_sequence(self, steps: list):
+        """Execute a list of input-only steps (window focus handled once at start)."""
+        if self.platform in ["Linux", "Darwin"]:
+            self._ensure_window_focused()
+        for i, step in enumerate(steps):
+            print(f"[SEQ] step {i + 1}/{len(steps)}")
+            self.execute_input_step(step)
+
     def restart_sequence(self):
         """Execute the restart sequence."""
         print("Starting restart sequence...")

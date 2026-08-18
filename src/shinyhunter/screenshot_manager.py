@@ -48,11 +48,13 @@ class ScreenshotManager:
         # Sanitize filename to prevent path traversal
         filename = os.path.basename(filename)
         
+        capture_width = self.config.screenshot_capture_width or self.config.emulator_width
+        capture_height = self.config.screenshot_capture_height or self.config.emulator_height
         region = (
             self.config.screenshot_region_x,
             self.config.screenshot_region_y,
-            self.config.emulator_width,
-            self.config.emulator_height
+            capture_width,
+            capture_height
         )
         
         if SCREENSHOT_METHOD == "pyautogui":

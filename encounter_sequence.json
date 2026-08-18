@@ -1,0 +1,124 @@
+{
+  "description": "Custom encounter sequence. Step types: press | pause | hold | combo | verify_screen | check_shiny. Keys: x (A), z (B), enter (Start), backspace (Select), up | down | left | right (D-pad). verify_screen: add 'template' field \u2014 'pre_encounter' (default, overworld screen saved via Save Pre-Encounter Template) or 'encounter' (battle screen saved via Save Encounter Template). Or override with explicit 'template_path'. check_shiny stops hunt on shiny, restarts otherwise; optional 'reference_path' override.",
+  "encounter_sequence": [
+    {
+      "type": "verify_screen",
+      "template": "pre_encounter"
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.5
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "up",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "up",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 2.5
+    },
+    {
+      "type": "press",
+      "key": "z",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 0.4
+    },
+    {
+      "type": "pause",
+      "duration": 1.5
+    },
+    {
+      "type": "press",
+      "key": "down",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.4
+    },
+    {
+      "type": "pause",
+      "duration": 2.0
+    },
+    {
+      "type": "press",
+      "key": "right",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.4
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 0.4
+    },
+    {
+      "type": "pause",
+      "duration": 1.0
+    },
+    {
+      "type": "verify_screen",
+      "template": "encounter"
+    },
+    {
+      "type": "check_shiny"
+    },
+    {
+      "type": "combo",
+      "keys": ["x", "z", "enter", "backspace"],
+      "hold_duration": 0.2,
+      "delay_after": 4.0
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 3.5
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 2.0
+    },
+    {
+      "type": "press",
+      "key": "enter",
+      "delay_after": 3.0
+    },
+    {
+      "type": "press",
+      "key": "x",
+      "delay_after": 1.0
+    },
+    {
+      "type": "press",
+      "key": "z",
+      "delay_after": 4.0
+    }
+  ]
+}

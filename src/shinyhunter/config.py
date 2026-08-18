@@ -12,6 +12,10 @@ class ShinyHunterConfig:
     screenshot_region_y: int = 132
     emulator_width: int = 1290
     emulator_height: int = 900
+    # Optional capture crop — if set, the screenshot is limited to this size
+    # instead of the full emulator boundary. Set to 0 to use the boundary size.
+    screenshot_capture_width: int = 0
+    screenshot_capture_height: int = 0
     
     # Input delays
     pyautogui_pause: float = 2.0
@@ -35,10 +39,15 @@ class ShinyHunterConfig:
     
     # File paths
     calibration_reference_path: str = './screenshots/calibration_reference.png'
-    encounter_template_path: str = './screenshots/encounter_screen_template.png'
+    pre_encounter_template_path: str = './screenshots/encounter_screen_template.png'
+    encounter_template_path: str = './screenshots/battle_screen_template.png'
     
     # Safety
     failsafe_enabled: bool = False
+
+    # Custom encounter sequence
+    use_custom_sequence: bool = False
+    sequence_config_path: str = './encounter_sequence.json'
 
 class ConfigManager:
     _instance: Optional['ConfigManager'] = None
@@ -68,6 +77,11 @@ class ConfigManager:
         try:
             with open(self._config_file_path, 'r', encoding='utf-8') as config_file:
                 data = json.load(config_file)
+
+            # Migrate: old configs stored the overworld template under encounter_template_path.
+            # It is now pre_encounter_template_path; encounter_template_path is the battle screen.
+            if 'encounter_template_path' in data and 'pre_encounter_template_path' not in data:
+                self.config.pre_encounter_template_path = data.pop('encounter_template_path')
 
             for key, value in data.items():
                 if hasattr(self.config, key):
