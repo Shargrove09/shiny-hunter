@@ -12,3 +12,5 @@ emulator_screenshot.png
 encounter_screen_template.png 
 
 CLAUDE.md
+.DS_Store
+sprite_library/

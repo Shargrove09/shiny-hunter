@@ -1,13 +1,74 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses import asdict
-from typing import Optional
+from typing import List, Optional
 import threading
 import json
 import os
 
+# Anchor project files to the repo, not the working directory. Resolving against
+# os.getcwd() meant running from src/shinyhunter/ read and wrote a *different*
+# shinyhunter_config.json than running from the repo root, so settings appeared
+# to silently not take effect depending on where the app was launched from.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def project_path(relative: str) -> str:
+    """Resolve a project-relative path against the repo root."""
+    if os.path.isabs(relative):
+        return relative
+    return os.path.join(PROJECT_ROOT, relative.lstrip('./'))
+
 @dataclass
 class ShinyHunterConfig:
-    # Screenshot settings
+    # Capture source.
+    # 'window' captures the game window by id (macOS): immune to the window
+    # moving, to occlusion, and to Retina point-vs-pixel mismatch.
+    # 'region' captures a screen rectangle and is subject to all three.
+    capture_mode: str = 'region'
+    capture_window_owner: str = ''   # e.g. 'Playback' — matched case-insensitively
+    capture_window_title: str = ''
+
+    # Game viewport as fractions [x, y, w, h] of the captured image. Fractions
+    # rather than pixels so nothing breaks if the capture resolution changes.
+    game_viewport: List[float] = field(default_factory=lambda: [0.0, 0.0, 1.0, 1.0])
+
+    # Regions of interest.
+    # battle_detector: a patch identical in every wild battle and absent from the
+    # overworld, polled to answer "is a battle up yet".
+    # enemy_sprite: the 64x64 box the wild sprite is drawn in.
+    # In NATIVE 240x160 pixels: [x, y, w, h]. Native rather than fractions so the
+    # numbers mean the same thing at any window size, and are readable.
+    battle_detector_roi: List[int] = field(default_factory=lambda: [80, 136, 40, 20])
+    battle_detector_template: str = './screenshots/templates/battle_ready.png'
+    battle_detector_threshold: float = 0.75
+    enemy_sprite_roi: List[int] = field(default_factory=lambda: [143, 8, 64, 64])
+    # battle_menu: the FIGHT/BAG/POKeMON/RUN box. Distinct from battle_detector,
+    # which is up during the intro text too — this one says the game is ready to
+    # accept menu input, so the flee sequence can wait for it instead of guessing
+    # a delay and pressing into nothing.
+    battle_menu_roi: List[int] = field(default_factory=lambda: [136, 124, 40, 24])
+    battle_menu_template: str = './screenshots/templates/battle_menu.png'
+    battle_menu_threshold: float = 0.70
+
+    # Sprite matching. Thresholds sit inside measured gaps, and are deliberately
+    # asymmetric: a borderline sprite must fall to 'unknown' (one prompt), never
+    # to 'normal' (a shiny fled past in silence).
+    sprite_shape_threshold: float = 0.85
+    sprite_colour_threshold: float = 0.45
+    sprite_silhouette_threshold: float = 0.92
+    sprite_ambiguity_margin: float = 0.05
+    sprite_library_root: str = './sprite_library'
+
+    # Walking and unattended-run limits
+    walk_step_duration: float = 0.35
+    walk_jitter: float = 0.0
+    detector_poll_interval: float = 0.35
+    max_flee_attempts: int = 3
+    max_consecutive_resets: int = 3
+    max_consecutive_errors: int = 5
+    error_backoff_seconds: float = 5.0
+
+    # Screenshot settings (region mode)
     screenshot_region_x: int = 1180
     screenshot_region_y: int = 132
     emulator_width: int = 1290
@@ -62,7 +123,9 @@ class ConfigManager:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance.config = ShinyHunterConfig()
-                    cls._instance._config_file_path = os.path.join(os.getcwd(), 'shinyhunter_config.json')
+                    cls._instance._config_file_path = os.path.join(
+                        PROJECT_ROOT, 'shinyhunter_config.json'
+                    )
                     cls._instance.load_config()
         return cls._instance
     
@@ -82,6 +145,17 @@ class ConfigManager:
             # It is now pre_encounter_template_path; encounter_template_path is the battle screen.
             if 'encounter_template_path' in data and 'pre_encounter_template_path' not in data:
                 self.config.pre_encounter_template_path = data.pop('encounter_template_path')
+
+            # ROIs used to be fractions of the viewport; they are now native
+            # 240x160 pixels. Convert on load so an older config keeps working.
+            for key, (width, height) in (('battle_detector_roi', (240, 160)),
+                                         ('battle_menu_roi', (240, 160)),
+                                         ('enemy_sprite_roi', (240, 160))):
+                rect = data.get(key)
+                if rect and max(rect) <= 1.0:
+                    data[key] = [int(round(rect[0] * width)), int(round(rect[1] * height)),
+                                 int(round(rect[2] * width)), int(round(rect[3] * height))]
+                    print(f"config: migrated {key} from fractions to native pixels {data[key]}")
 
             for key, value in data.items():
                 if hasattr(self.config, key):

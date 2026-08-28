@@ -1,8 +1,8 @@
 {
-  "screenshot_region_x": 100,
-  "screenshot_region_y": 132,
-  "emulator_width": 1290,
-  "emulator_height": 900,
+  "screenshot_region_x": 746,
+  "screenshot_region_y": 240,
+  "emulator_width": 1296,
+  "emulator_height": 960,
   "screenshot_capture_width": 0,
   "screenshot_capture_height": 0,
   "pyautogui_pause": 2.0,
@@ -20,5 +20,38 @@
   "encounter_template_path": "./screenshots/encounter_screen_template.png",
   "failsafe_enabled": false,
   "use_custom_sequence": true,
-  "sequence_config_path": "./encounter_sequence.json"
+  "sequence_config_path": "./encounter_sequence.json",
+  "capture_mode": "window",
+  "capture_window_owner": "Playback",
+  "capture_window_title": "",
+  "game_viewport": [
+    0.17273,
+    0.21333,
+    0.65455,
+    0.71111
+  ],
+  "enemy_sprite_roi": [
+    143,
+    8,
+    64,
+    64
+  ],
+  "sprite_shape_threshold": 0.85,
+  "sprite_colour_threshold": 0.45,
+  "battle_detector_roi": [
+    80,
+    136,
+    40,
+    20
+  ],
+  "battle_detector_template": "./screenshots/templates/battle_ready.png",
+  "battle_detector_threshold": 0.75,
+  "battle_menu_roi": [
+    136,
+    124,
+    40,
+    24
+  ],
+  "battle_menu_template": "./screenshots/templates/battle_menu.png",
+  "battle_menu_threshold": 0.7
 }
