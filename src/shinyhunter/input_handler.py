@@ -1,5 +1,6 @@
 import time
 import random
+from contextlib import contextmanager
 from config import ConfigManager
 import platform
 from typing import Callable, Optional
@@ -43,14 +44,20 @@ class InputHandler:
 
         print(f"InputHandler initialized for {self.platform} using {self.input_method}:")
 
-    def _jittered_sleep(self, seconds: float):
+    def _jittered_sleep(self, seconds: float, jitter: float = None):
         """Sleep with random jitter to prevent RNG lock from fixed timing.
 
         Jitter only adds time (never subtracts) so the game always has
         at least the base delay needed for screen transitions.
+
+        `jitter=None` uses the global setting. Steps may override it — a random
+        encounter walk loop wants zero, because its RNG is already free-running
+        and 0-1s per step is pure wall-clock cost. Soft-reset hunts still need
+        the global jitter, since a fixed input sequence from a deterministic boot
+        seed reproduces the same PID forever.
         """
         base = seconds
-        jitter = self.config.timing_jitter
+        jitter = self.config.timing_jitter if jitter is None else jitter
         if jitter > 0:
             offset = random.uniform(0, jitter)
             seconds = seconds + offset
@@ -236,6 +243,49 @@ class InputHandler:
 
         return False
 
+    @contextmanager
+    def fast_input(self):
+        """Suppress pyautogui's global inter-call pause for the duration.
+
+        pyautogui.PAUSE is set from config.pyautogui_pause (2.0s) and applies to
+        every keyDown/keyUp. A walk loop issuing two calls per step would spend
+        four seconds per tile on that path alone.
+        """
+        if self.input_method != "pyautogui":
+            yield
+            return
+        previous = pyautogui.PAUSE
+        pyautogui.PAUSE = 0
+        try:
+            yield
+        finally:
+            pyautogui.PAUSE = previous
+
+    def hold_key_for(self, key: str, duration: float):
+        """Hold a direction long enough to move one tile.
+
+        A tap will not do: in Gen 3 a direction you are not already facing spends
+        its first ~8 frames turning in place, so short presses can pivot forever
+        without ever changing tile.
+        """
+        self._key_down(key)
+        try:
+            time.sleep(max(0.0, duration))
+        finally:
+            self._key_up(key)
+
+    def press_keys_down(self, keys):
+        for key in keys or ():
+            self._key_down(key)
+
+    def release_keys(self, keys):
+        """Release keys, never letting one failure strand the rest held down."""
+        for key in keys or ():
+            try:
+                self._key_up(key)
+            except Exception as error:
+                print(f"Warning: could not release {key}: {error}")
+
     def execute_input_step(self, step: dict):
         """Execute a single input step dict (press / pause / hold / combo).
 
@@ -243,16 +293,17 @@ class InputHandler:
         those are dispatched by the controller which has access to image processing.
         """
         step_type = step.get("type")
+        jitter = step.get("jitter")      # None -> use the global setting
         print(f"[SEQ] step: {step}")
 
         if step_type == "press":
             self._press_key(step["key"], ensure_focus=False)
             delay = step.get("delay_after", 0)
             if delay > 0:
-                self._jittered_sleep(delay)
+                self._jittered_sleep(delay, jitter)
 
         elif step_type == "pause":
-            self._jittered_sleep(step.get("duration", 0))
+            self._jittered_sleep(step.get("duration", 0), jitter)
 
         elif step_type == "hold":
             key = step["key"]
@@ -261,7 +312,7 @@ class InputHandler:
             self._key_up(key)
             delay = step.get("delay_after", 0)
             if delay > 0:
-                self._jittered_sleep(delay)
+                self._jittered_sleep(delay, jitter)
 
         elif step_type == "combo":
             keys = step.get("keys", [])
@@ -272,7 +323,7 @@ class InputHandler:
                 self._key_up(k)
             delay = step.get("delay_after", 0)
             if delay > 0:
-                self._jittered_sleep(delay)
+                self._jittered_sleep(delay, jitter)
 
         else:
             print(f"[SEQ] Warning: unknown input step type '{step_type}', skipping")

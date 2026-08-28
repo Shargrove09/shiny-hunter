@@ -83,9 +83,10 @@ if __name__ == '__main__':
     # Initialize controller
     shiny_hunter = ShinyHunterController()
 
-    # Create input thread
-    input_thread = threading.Thread(target=shiny_hunter.attempt_encounter)
-
+    # The hunt thread is created per-run in ShinyHuntGUI._launch_hunt_thread —
+    # a Thread can only be started once, so building it here made the second
+    # Start raise RuntimeError.
+    input_thread = None
 
     # Initialize GUI
     app = ShinyHuntGUI(

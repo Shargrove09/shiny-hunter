@@ -34,9 +34,11 @@ class ShinyHuntGUI:
         root.grid_rowconfigure(0, weight=3)  # main content row (frames + game view)
         root.grid_rowconfigure(4, weight=1)  # log textbox row
 
-        self.paused = False
         self.stopped = False
 
+        # Pause state lives on the controller only. Mirroring it here desyncs the
+        # moment the controller pauses itself (e.g. on repeated errors), after
+        # which the user's next Pause press would silently resume the hunt.
         self.input_thread = input_thread
         self.handle_start = handle_start
         self.handle_pause = handle_pause
@@ -669,14 +671,30 @@ class ShinyHuntGUI:
                 "Navigate to the overworld screen and press 'Save Pre-Encounter Template'."
             )
 
-        self.status_label.configure(text="Mewtwo Hunt in progress...")
+        self.status_label.configure(text="Hunt in progress...")
         self.start_button.configure(state="disabled")
 
         if hasattr(self, 'cross_platform_app_frame'):
             self.cross_platform_app_frame.set_window_position_locked(True)
 
         self.handle_start()
-        self.input_thread.start()
+        self._launch_hunt_thread()
+
+    def _launch_hunt_thread(self):
+        """Start a fresh hunt thread.
+
+        A Thread can only be started once, so one is created per run — reusing a
+        single thread built at startup makes the second Start raise RuntimeError.
+        """
+        existing = getattr(self.controller, 'thread', None)
+        if existing is not None and existing.is_alive():
+            self.log_message("Hunt thread is already running.")
+            return
+
+        thread = Thread(target=self.controller.attempt_encounter, daemon=True)
+        self.controller.thread = thread
+        self.input_thread = thread
+        thread.start()
 
     def update_count(self):
         if self.controller:
@@ -692,7 +710,30 @@ class ShinyHuntGUI:
             return
 
         self.update_count()
+        self._sync_hunt_status()
         self._count_update_after_id = self.root.after(150, self._schedule_count_sync)
+
+    def _sync_hunt_status(self):
+        """Drive the status label and Start button from controller state.
+
+        The controller can stop or pause itself (shiny found, repeated errors,
+        unknown sprite), so the GUI must follow it rather than track its own copy.
+        """
+        controller = self.controller
+        if not controller:
+            return
+
+        if controller.running:
+            text = "Hunt Paused" if controller.paused else "Hunt in progress..."
+            state = "disabled"
+        else:
+            text = "Hunt stopped."
+            state = "normal"
+
+        if self.status_label.cget("text") != text:
+            self.status_label.configure(text=text)
+        if self.start_button.cget("state") != state:
+            self.start_button.configure(state=state)
 
     def _stop_count_sync(self):
         """Stop periodic counter synchronization."""
@@ -701,18 +742,13 @@ class ShinyHuntGUI:
         self._count_update_after_id = None
 
     def toggle_pause(self):
-        self.paused = not self.paused
-        if self.paused:
-            self.status_label.configure(text="Hunt Paused")
-        else:
-            self.status_label.configure(text="Mewtwo Hunt in progress...")
         self.handle_pause()
+        self._sync_hunt_status()
 
     def stop_hunt(self):
         print('Stopping Hunt')
         self.handle_stop()
-        self.start_button.configure(state="normal")
-        self.status_label.configure(text="Mewtwo Hunt stopped.")
+        self._sync_hunt_status()
         self.update_count()
 
         if hasattr(self, 'cross_platform_app_frame'):
