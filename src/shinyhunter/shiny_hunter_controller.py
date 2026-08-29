@@ -43,6 +43,8 @@ STEP_FIELDS = {
     'walk_until_encounter': {'type', 'keys', 'hold_keys', 'step_duration', 'gap', 'jitter',
                              'poll_every', 'max_steps', 'refocus_every', 'detect_template',
                              'detect_roi', 'threshold'},
+    'press_until_screen': {'type', 'key', 'template', 'roi', 'threshold', 'interval',
+                           'max_presses', 'timeout', 'jitter'},
     'check_library': {'type', 'roi', 'library', 'samples', 'sample_gap', 'shape_threshold',
                       'colour_threshold', 'ambiguity_margin', 'silhouette_threshold',
                       'stable_tolerance', 'stable_timeout', 'stable_interval'},
@@ -234,6 +236,49 @@ class ShinyHunterController:
                  "classifying anyway, the verdict may be unreliable")
         return False
 
+    def _step_press_until_screen(self, step: dict, spec: dict):
+        """Tap a key until a screen appears, checking before every press.
+
+        Open-loop presses cannot survive a variable-length animation: a fixed
+        delay after detection lands the press during the encounter transition on
+        one encounter and after it on the next, so the same sequence works then
+        fails. Checking first means a press is only ever spent when the target
+        screen is still absent, and none are spent once it arrives.
+
+        Because it re-checks before each press, it is safe even with a key that
+        would do something on the destination screen -- it stops pressing the
+        moment that screen is up.
+        """
+        key = step.get('key', 'z')
+        template = self._named_template(spec, step.get('template'))
+        region = self._named_region(spec, step.get('roi'))
+        threshold = step.get('threshold', self.config.battle_menu_threshold)
+        interval = float(step.get('interval', 0.5))
+        max_presses = int(step.get('max_presses', 8))
+        timeout = float(step.get('timeout', 12.0))
+
+        deadline = time.monotonic() + timeout
+        best = 0.0
+        presses = 0
+
+        while True:
+            matched, score = self.image_processor.matches_template(
+                self.screenshot_manager.grab_native(), template,
+                region=region, threshold=threshold)
+            best = max(best, score)
+            if matched:
+                return None, presses
+
+            if presses >= max_presses or time.monotonic() >= deadline:
+                return Outcome(TIMEOUT, step='press_until_screen', key=key,
+                               template=template, presses=presses,
+                               best_score=round(best, 4)), presses
+
+            self.input_handler.execute_input_step(
+                {'type': 'press', 'key': key, 'delay_after': interval,
+                 'jitter': step.get('jitter', 0)})
+            presses += 1
+
     def _step_check_library(self, step: dict, spec: dict) -> Outcome:
         """Identify the wild sprite and decide normal / shiny / unknown.
 
@@ -400,6 +445,17 @@ class ShinyHunterController:
 
                 if t in ("press", "pause", "hold", "combo"):
                     self.input_handler.execute_input_step(step)
+
+                elif t == "press_until_screen":
+                    outcome, presses = self._step_press_until_screen(step, spec)
+                    label = step.get('template', '?')
+                    if outcome is not None:
+                        self.log(f"press_until_screen ({label}): gave up after "
+                                 f"{presses} press(es), best score "
+                                 f"{outcome.detail.get('best_score')}")
+                        return outcome
+                    self.log(f"press_until_screen ({label}): reached it "
+                             f"after {presses} press(es)")
 
                 elif t == "check_library":
                     return self._step_check_library(step, spec)

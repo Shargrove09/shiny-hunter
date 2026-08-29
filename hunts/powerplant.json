@@ -2,9 +2,24 @@
   "description": "Power Plant random encounters (FRLG). Walk back and forth until a wild battle starts, identify the species against the sprite library, flee if it is an ordinary one. ROIs are in native GBA pixels (240x160). Step types: press | pause | hold | combo | walk_until_encounter | wait_for_screen | check_library | verify_screen | check_shiny. Add \"jitter\": 0 to any timed step to opt out of the global timing jitter.",
   "hunt_name": "powerplant",
   "rois": {
-    "battle_detector": [80, 136, 40, 20],
-    "enemy_sprite": [143, 8, 64, 64],
-    "battle_menu": [136, 124, 40, 24]
+    "battle_detector": [
+      80,
+      136,
+      40,
+      20
+    ],
+    "enemy_sprite": [
+      143,
+      8,
+      64,
+      64
+    ],
+    "battle_menu": [
+      136,
+      124,
+      40,
+      24
+    ]
   },
   "templates": {
     "battle_detector": "./screenshots/templates/battle_ready.png",
@@ -18,8 +33,17 @@
   "encounter_sequence": [
     {
       "type": "walk_until_encounter",
-      "keys": ["left", "left", "left", "right", "right", "right"],
-      "hold_keys": ["z"],
+      "keys": [
+        "left",
+        "left",
+        "left",
+        "right",
+        "right",
+        "right"
+      ],
+      "hold_keys": [
+        "z"
+      ],
       "step_duration": 0.35,
       "jitter": 0,
       "poll_every": 4,
@@ -45,24 +69,15 @@
   ],
   "flee_sequence": [
     {
-      "type": "press",
-      "key": "x",
-      "delay_after": 1,
-      "jitter": 0
-    },
-    {
-      "type": "press",
-      "key": "x",
-      "delay_after": 1.5,
-      "jitter": 0
-    },
-    {
-      "type": "wait_for_screen",
+      "type": "press_until_screen",
+      "key": "z",
       "template": "battle_menu",
       "roi": "battle_menu",
-      "expect": "present",
       "threshold": 0.7,
-      "timeout": 12.0
+      "interval": 0.6,
+      "max_presses": 8,
+      "timeout": 15.0,
+      "jitter": 0
     },
     {
       "type": "press",
@@ -83,16 +98,11 @@
       "jitter": 0
     },
     {
-      "type": "press",
-      "key": "x",
-      "jitter": 0
-    },
-    {
       "type": "wait_for_screen",
       "template": "battle_detector",
       "roi": "battle_detector",
       "expect": "absent",
-      "timeout": 10.0
+      "timeout": 12.0
     }
   ],
   "recover_sequence": [
