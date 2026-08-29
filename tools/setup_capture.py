@@ -74,8 +74,10 @@ def main():
     args = parser.parse_args()
 
     if not window_capture.available():
-        print("Window capture needs macOS with Quartz (pyobjc). Use tools/find_region.py.")
+        print(window_capture.unavailable_reason())
+        print("Falling back to screen-region capture: python tools/find_region.py")
         sys.exit(1)
+    print(f"backend: {window_capture.backend()}")
 
     if not args.owner:
         show_windows()

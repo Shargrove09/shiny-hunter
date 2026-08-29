@@ -30,6 +30,36 @@ COMPLETE = "complete"
 ERROR = "error"
 
 
+STEP_FIELDS = {
+    'press': {'type', 'key', 'delay_after', 'jitter'},
+    'pause': {'type', 'duration', 'jitter'},
+    'hold': {'type', 'key', 'duration', 'delay_after', 'jitter'},
+    'combo': {'type', 'keys', 'hold_duration', 'delay_after', 'jitter'},
+    'verify_screen': {'type', 'template', 'template_path'},
+    'check_shiny': {'type', 'reference_path'},
+    'wait_for_screen': {'type', 'template', 'template_path', 'roi', 'roi_rect', 'threshold',
+                        'expect', 'timeout', 'poll_interval', 'on_timeout', 'on_timeout_result',
+                        'delay_after', 'jitter'},
+    'walk_until_encounter': {'type', 'keys', 'hold_keys', 'step_duration', 'gap', 'jitter',
+                             'poll_every', 'max_steps', 'refocus_every', 'detect_template',
+                             'detect_roi', 'threshold'},
+    'check_library': {'type', 'roi', 'library', 'samples', 'sample_gap', 'shape_threshold',
+                      'colour_threshold', 'ambiguity_margin', 'silhouette_threshold',
+                      'stable_tolerance', 'stable_timeout', 'stable_interval'},
+}
+
+
+def unknown_fields(step: dict):
+    """Fields a step type does not read.
+
+    Steps are plain dicts, so a misplaced or misspelled key is otherwise a silent
+    no-op -- a `delay_after` on a step that ignores it looks like it is waiting
+    when it is not.
+    """
+    allowed = STEP_FIELDS.get(step.get('type'))
+    return sorted(set(step) - allowed) if allowed else []
+
+
 class Outcome(str):
     """A sequence result that also carries diagnostics.
 
@@ -363,6 +393,11 @@ class ShinyHunterController:
                 current = step
                 t = step.get("type")
 
+                stray = unknown_fields(step)
+                if stray:
+                    self.log(f"Warning: {t} ignores {', '.join(stray)} — "
+                             "check the field name, it is doing nothing")
+
                 if t in ("press", "pause", "hold", "combo"):
                     self.input_handler.execute_input_step(step)
 
@@ -387,6 +422,9 @@ class ShinyHunterController:
                             continue
                         return outcome
                     self.log(f"wait_for_screen ({label}): confirmed (score {score:.3f})")
+                    settle = float(step.get('delay_after', 0) or 0)
+                    if settle > 0:
+                        self.input_handler._jittered_sleep(settle, step.get('jitter', 0))
 
                 elif t == "verify_screen":
                     template_key = step.get("template", "pre_encounter")

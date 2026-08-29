@@ -1,4 +1,4 @@
-"""Capture a specific window by id instead of a screen rectangle (macOS).
+"""Capture a specific window by id instead of a screen rectangle.
 
 Grabbing a screen rectangle couples every capture to the window's position, the
 display's Retina scale factor, and whatever happens to be on top. Capturing the
@@ -9,17 +9,25 @@ Window ids are not stable across app restarts, so the window is resolved by
 owner name each session and the id is re-resolved automatically if a capture
 fails.
 
-macOS only. Callers should fall back to region capture elsewhere.
+Two backends behind one interface: macOS via Quartz + `screencapture -l`, and
+X11 via `wmctrl` + ImageMagick `import -window`. Callers fall back to region
+capture where neither is available.
+
+X11 has no equivalent of macOS's off-screen window buffer: without a compositing
+manager, `import` on an obscured window returns whatever is drawn over it. Keep
+the game window unobscured.
 """
 import logging
 import os
 import platform
+import shutil
 import subprocess
 import tempfile
 
 logger = logging.getLogger(__name__)
 
 IS_MACOS = platform.system() == 'Darwin'
+IS_LINUX = platform.system() == 'Linux'
 
 try:
     import Quartz
@@ -33,8 +41,111 @@ class WindowCaptureError(RuntimeError):
     """Raised when a window cannot be found or captured."""
 
 
+def _has(command: str) -> bool:
+    return shutil.which(command) is not None
+
+
+def backend() -> str:
+    """Which capture backend this machine can use: 'quartz', 'x11' or ''."""
+    if IS_MACOS and QUARTZ_AVAILABLE:
+        return 'quartz'
+    if IS_LINUX and _has('wmctrl') and _has('import'):
+        return 'x11'
+    return ''
+
+
+def unavailable_reason() -> str:
+    """Why window capture is not usable here, and what to install."""
+    if IS_MACOS:
+        return "macOS window capture needs pyobjc (Quartz): pip install pyobjc-framework-Quartz"
+    if IS_LINUX:
+        missing = [c for c in ('wmctrl', 'import') if not _has(c)]
+        if missing:
+            package = 'imagemagick' if 'import' in missing else 'wmctrl'
+            return (f"X11 window capture needs {' and '.join(missing)}: "
+                    f"sudo apt install wmctrl imagemagick  (missing: {package})")
+        return "X11 window capture unavailable for an unknown reason"
+    return f"Window capture is not implemented for {platform.system()}"
+
+
 def available() -> bool:
-    return IS_MACOS and QUARTZ_AVAILABLE
+    return backend() != ''
+
+
+def parse_wmctrl(output: str, min_width: int = 200, min_height: int = 150) -> list:
+    """Parse `wmctrl -lGx` into the same window dicts the Quartz path returns.
+
+    Columns are: id, desktop, x, y, w, h, WM_CLASS, host, title. The title runs to
+    end of line and may contain spaces, so the split is bounded at 8 fields.
+
+    WM_CLASS is `instance.Class` -- the closest X11 analogue of macOS's owner
+    name, and unlike a window title it is stable, which is what resolution keys on.
+    """
+    windows = []
+    for line in output.splitlines():
+        parts = line.split(None, 8)
+        if len(parts) < 8:
+            continue
+        identifier, _desktop, x, y, width, height, wm_class, _host = parts[:8]
+        title = parts[8] if len(parts) > 8 else ''
+        try:
+            x, y, width, height = int(x), int(y), int(width), int(height)
+        except ValueError:
+            continue
+        if width < min_width or height < min_height:
+            continue
+        if x < -1000 or y < -1000:        # sticky/hidden windows park off-screen
+            continue
+        windows.append({
+            'id': identifier,
+            # WM_CLASS is "instance.Class"; split on the FIRST dot only, or a
+            # class like "Gimp.Gimp-2.10" yields an owner of "10".
+            'owner': wm_class.split('.', 1)[-1] if wm_class else '',
+            'wm_class': wm_class,
+            'title': title,
+            'x': x, 'y': y, 'width': width, 'height': height,
+        })
+    windows.sort(key=lambda w: -(w['width'] * w['height']))
+    return windows
+
+
+def _list_windows_x11(min_width: int, min_height: int) -> list:
+    try:
+        result = subprocess.run(['wmctrl', '-lGx'], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise WindowCaptureError(f"wmctrl failed: {error}") from error
+    if result.returncode != 0:
+        raise WindowCaptureError(
+            f"wmctrl exited {result.returncode}: {result.stderr.strip() or 'no output'}. "
+            "Is DISPLAY set and pointing at a running X session?")
+    return parse_wmctrl(result.stdout, min_width, min_height)
+
+
+def _capture_x11(window_id, include_frame: bool = False):
+    """Capture one X11 window with ImageMagick."""
+    from PIL import Image
+
+    handle, path = tempfile.mkstemp('.png')
+    os.close(handle)
+    try:
+        args = ['import', '-window', str(window_id)]
+        if include_frame:
+            args.append('-frame')
+        args.append(path)
+
+        result = subprocess.run(args, capture_output=True, text=True, timeout=20)
+        if result.returncode != 0 or not os.path.getsize(path):
+            raise WindowCaptureError(
+                f"import failed for window {window_id} (exit {result.returncode}): "
+                f"{result.stderr.strip() or 'no output'}. The window may be minimised, "
+                "or DISPLAY may be wrong.")
+
+        image = Image.open(path)
+        image.load()
+        return image.convert('RGB')
+    finally:
+        if os.path.exists(path):
+            os.unlink(path)
 
 
 def list_windows(min_width: int = 200, min_height: int = 150) -> list:
@@ -42,8 +153,10 @@ def list_windows(min_width: int = 200, min_height: int = 150) -> list:
 
     Menu-bar extras and helper windows are filtered out by layer and size.
     """
+    if backend() == 'x11':
+        return _list_windows_x11(min_width, min_height)
     if not available():
-        raise WindowCaptureError("Window capture requires macOS with Quartz (pyobjc).")
+        raise WindowCaptureError(unavailable_reason())
 
     raw = Quartz.CGWindowListCopyWindowInfo(
         Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements,
@@ -91,9 +204,12 @@ def resolve_window(owner: str = '', title: str = '') -> dict:
     ]
 
     if not matches:
-        names = ', '.join(sorted({w['owner'] for w in windows})) or 'none'
+        names = ', '.join(sorted({w['owner'] for w in windows if w['owner']})) or 'none'
+        titles = ', '.join(sorted({w['title'] for w in windows if w['title']})[:6]) or 'none'
         raise WindowCaptureError(
-            f"No window matching owner={owner!r} title={title!r}. Visible apps: {names}"
+            f"No window matching owner={owner!r} title={title!r}.\n"
+            f"  visible owners: {names}\n"
+            f"  visible titles: {titles}"
         )
 
     return matches[0]
@@ -109,8 +225,10 @@ def capture(window_id: int, include_shadow: bool = False):
     the window's point size. That is fine and stable; use fractional regions so
     nothing depends on the absolute pixel count.
     """
+    if backend() == 'x11':
+        return _capture_x11(window_id, include_shadow)
     if not available():
-        raise WindowCaptureError("Window capture requires macOS with Quartz (pyobjc).")
+        raise WindowCaptureError(unavailable_reason())
 
     from PIL import Image
 
