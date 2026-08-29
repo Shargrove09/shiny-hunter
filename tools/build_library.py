@@ -21,12 +21,35 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 
 import cv2  # noqa: E402
 
+from config import ConfigManager  # noqa: E402
 from image_processor import (crop, to_native, detect_game_viewport,  # noqa: E402
                              validate_viewport)
 from sprite_library import (SpriteLibrary, to_canonical, sprite_mask,  # noqa: E402
                             write_manifest)
 
 CONFIG_PATH = 'shinyhunter_config.json'
+
+
+def capture_geometry():
+    """Viewport and sprite ROI, via ConfigManager so defaults and the
+    fraction-to-native migration both apply.
+
+    Reading the JSON directly meant a config written before a key existed raised
+    KeyError instead of falling back -- and an un-run setup would have silently
+    used the whole window as the viewport, which is worse than stopping.
+    """
+    config = ConfigManager().get_config()
+    viewport = list(config.game_viewport)
+    sprite_roi = list(config.enemy_sprite_roi)
+
+    if viewport == [0.0, 0.0, 1.0, 1.0]:
+        print("No game viewport is configured — the whole window would be treated as")
+        print("the game, and every crop would be wrong. Set it during a wild battle:")
+        print("  python tools/setup_capture.py --owner <name> --write")
+        sys.exit(1)
+
+    return viewport, sprite_roi
+
 
 
 def viewport_for(frame, fallback, label=''):
@@ -59,9 +82,6 @@ def main():
                         help="Keep only the first frame of each species")
     args = parser.parse_args()
 
-    with open(CONFIG_PATH, encoding='utf-8') as handle:
-        config = json.load(handle)
-
     hunt_dir = os.path.join('sprite_library', args.hunt)
     labels_path = os.path.join(hunt_dir, '_labels.json')
     if not os.path.exists(labels_path):
@@ -71,8 +91,7 @@ def main():
     with open(labels_path, encoding='utf-8') as handle:
         labels = {k: v.lower() for k, v in json.load(handle).items()}
 
-    viewport = config['game_viewport']
-    sprite_roi = config['enemy_sprite_roi']
+    viewport, sprite_roi = capture_geometry()
 
     crops, species = [], []
     for path in sorted(glob.glob(os.path.join(hunt_dir, '_samples', '*.png'))):

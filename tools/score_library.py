@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 
+from config import ConfigManager  # noqa: E402
 from image_processor import (crop, to_native, detect_game_viewport,  # noqa: E402
                              validate_viewport)
 from sprite_library import (SpriteLibrary, to_canonical, sprite_mask,  # noqa: E402
@@ -33,6 +34,28 @@ from sprite_library import (SpriteLibrary, to_canonical, sprite_mask,  # noqa: E
                             shape_score, colour_distance)
 
 CONFIG_PATH = 'shinyhunter_config.json'
+
+
+def capture_geometry():
+    """Viewport and sprite ROI, via ConfigManager so defaults and the
+    fraction-to-native migration both apply.
+
+    Reading the JSON directly meant a config written before a key existed raised
+    KeyError instead of falling back -- and an un-run setup would have silently
+    used the whole window as the viewport, which is worse than stopping.
+    """
+    config = ConfigManager().get_config()
+    viewport = list(config.game_viewport)
+    sprite_roi = list(config.enemy_sprite_roi)
+
+    if viewport == [0.0, 0.0, 1.0, 1.0]:
+        print("No game viewport is configured — the whole window would be treated as")
+        print("the game, and every crop would be wrong. Set it during a wild battle:")
+        print("  python tools/setup_capture.py --owner <name> --write")
+        sys.exit(1)
+
+    return viewport, sprite_roi
+
 
 
 def hue_rotate(bgr, degrees=90, mask=None):
@@ -68,8 +91,7 @@ def viewport_for(frame, fallback, label=''):
 
 
 def load_sprites(hunt, config):
-    viewport = config['game_viewport']
-    sprite_roi = config['enemy_sprite_roi']
+    viewport, sprite_roi = capture_geometry()
     paths = sorted(glob.glob(os.path.join('sprite_library', hunt, '_samples', '*.png')))
     out = []
     for path in paths:
@@ -90,13 +112,7 @@ def main():
     parser.add_argument('--colour-threshold', type=float, default=0.45)
     args = parser.parse_args()
 
-    with open(CONFIG_PATH, encoding='utf-8') as handle:
-        config = json.load(handle)
-
-    if 'enemy_sprite_roi' not in config:
-        print("No enemy_sprite_roi in config. Run tools/setup_capture.py first.")
-        sys.exit(1)
-
+    config = ConfigManager().get_config()
     samples = load_sprites(args.hunt, config)
     if not samples:
         print(f"No samples in sprite_library/{args.hunt}/_samples/")
