@@ -20,8 +20,9 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 
 from image_processor import (ImageProcessor, crop, detect_game_viewport,  # noqa: E402
-                             describe_scale, resolve_region, to_native,
-                             validate_viewport)
+                             describe_scale, required_capture_aspect, resolve_region,
+                             to_native, validate_viewport, viewport_fits)
+from screenshot_manager import ScreenshotManager, ViewportError  # noqa: E402
 from sprite_library import SpriteLibrary  # noqa: E402
 
 FAILS = []
@@ -84,6 +85,57 @@ for scale in (0.5, 0.75, 1.25, 1.5, 2.0):
     # Resampling to and from a different size cannot be bit-exact, but it must be
     # far below the level that moves a match score.
     check(f'window x{scale:<4} ({width}x{height})', diff < 8.0, f'mean|diff|={diff:.2f}')
+
+# The tests above resize with one factor on BOTH axes, which a fractional
+# viewport survives -- that is why they passed while the hunt was broken. A
+# fraction is correct at exactly one capture *aspect*: reshape the window and it
+# crops a different rectangle, to_native stretches it to a convincing 240x160,
+# and nothing downstream can tell. This is the case that was missing.
+print("\n=== a RESHAPED window must be refused, not silently cropped ===")
+
+required = required_capture_aspect(VIEWPORT)
+check('viewport implies one capture aspect', required is not None,
+      f'{required:.3f}:1' if required else '')
+
+# The exact numbers from the live failure, so this specific bug cannot return.
+BROKEN = [0.17273, 0.21333, 0.65455, 0.71111]
+for width, height, expect_ok in ((1100, 675, True), (2200, 1350, True),
+                                 (1808, 1164, False), (1920, 1080, False)):
+    ok, rect, reason = viewport_fits(BROKEN, (height, width, 3))
+    check(f'stored-fraction check at {width}x{height}', ok == expect_ok,
+          f'-> {rect[2]}x{rect[3]} {"OK" if ok else reason}')
+
+# And the live path must raise rather than return a plausible frame.
+class _FakeManager(ScreenshotManager):
+    def __init__(self, frame, viewport):
+        self._frame = frame
+        self._viewport = None
+        self._viewport_source = ''
+        self.config = type('C', (), {'game_viewport': viewport,
+                                     'game_viewport_capture': None,
+                                     'capture_window_owner': 'Playback'})()
+
+base_frame = cv2.imread(BATTLE[0])
+for ratio, label in ((1.0, 'unchanged'), (1.35, 'squeezed'), (0.7, 'stretched')):
+    reshaped = cv2.resize(base_frame,
+                          (int(base_frame.shape[1] * ratio), base_frame.shape[0]),
+                          interpolation=cv2.INTER_AREA)
+    # Detection would rescue a battle frame, so test the arithmetic rung directly:
+    # this is what protects an overworld frame, where detection is unavailable.
+    ok, _rect, _reason = viewport_fits(BASE_VP, reshaped.shape)
+    check(f'{label:10s} ({reshaped.shape[1]}x{reshaped.shape[0]}) '
+          f'{"accepted" if ratio == 1.0 else "refused"}',
+          ok == (ratio == 1.0), '' if ok == (ratio == 1.0) else 'wrong verdict')
+
+manager = _FakeManager(base_frame, BROKEN)
+try:
+    manager.resolve_viewport(np.zeros((1164, 1808, 3), np.uint8))
+    check('resolve_viewport raises on an unusable viewport', False, 'returned instead')
+except ViewportError as error:
+    text = str(error)
+    check('resolve_viewport raises on an unusable viewport', True)
+    check('  error names the fix', 'setup_capture.py' in text)
+    check('  error names the required aspect', ':1' in text)
 
 print("\n=== and a resized window must not change the verdict ===")
 library = SpriteLibrary(os.path.join(REPO, 'sprite_library', 'powerplant'))

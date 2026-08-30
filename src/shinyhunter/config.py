@@ -4,6 +4,8 @@ from typing import List, Optional
 import threading
 import json
 import os
+import re
+import socket
 
 # Anchor project files to the repo, not the working directory. Resolving against
 # os.getcwd() meant running from src/shinyhunter/ read and wrote a *different*
@@ -11,12 +13,42 @@ import os
 # to silently not take effect depending on where the app was launched from.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+CONFIG_NAME = 'shinyhunter_config.json'
+
 
 def project_path(relative: str) -> str:
     """Resolve a project-relative path against the repo root."""
     if os.path.isabs(relative):
         return relative
     return os.path.join(PROJECT_ROOT, relative.lstrip('./'))
+
+
+def host_slug() -> str:
+    """This machine's short name, safe to put in a filename."""
+    name = socket.gethostname().split('.')[0]
+    return re.sub(r'[^A-Za-z0-9_-]', '-', name) or 'unknown'
+
+
+def config_path() -> str:
+    """Which config file this machine uses.
+
+    Almost everything in the config is *geometry* -- window owner, viewport,
+    ROIs -- and geometry is a property of the machine, not of the project. One
+    shared file means syncing a branch between a Mac and a VM silently overwrites
+    whichever one was calibrated last, which is indistinguishable from the
+    hunt breaking on its own.
+
+    Order: $SHINYHUNTER_CONFIG, then a per-host file, then the shared default.
+    """
+    override = os.environ.get('SHINYHUNTER_CONFIG')
+    if override:
+        return project_path(override)
+
+    per_host = project_path(f'shinyhunter_config.{host_slug()}.json')
+    if os.path.exists(per_host):
+        return per_host
+
+    return project_path(CONFIG_NAME)
 
 @dataclass
 class ShinyHunterConfig:
@@ -31,6 +63,10 @@ class ShinyHunterConfig:
     # Game viewport as fractions [x, y, w, h] of the captured image. Fractions
     # rather than pixels so nothing breaks if the capture resolution changes.
     game_viewport: List[float] = field(default_factory=lambda: [0.0, 0.0, 1.0, 1.0])
+    # The capture size game_viewport was measured against, purely so a mismatch
+    # can name what changed. A fractional viewport is correct at exactly one
+    # capture *aspect* -- it survives the window being scaled, not reshaped.
+    game_viewport_capture: Optional[List[int]] = None
 
     # Regions of interest.
     # battle_detector: a patch identical in every wild battle and absent from the
@@ -123,17 +159,26 @@ class ConfigManager:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance.config = ShinyHunterConfig()
-                    cls._instance._config_file_path = os.path.join(
-                        PROJECT_ROOT, 'shinyhunter_config.json'
-                    )
+                    cls._instance._config_file_path = config_path()
                     cls._instance.load_config()
         return cls._instance
-    
+
     def get_config(self) -> ShinyHunterConfig:
         return self.config
-    
+
+    @property
+    def path(self) -> str:
+        """The config file actually in use — print it, don't assume it."""
+        return self._config_file_path
+
+
     def load_config(self):
         """Load configuration from JSON file if it exists."""
+        # Say which file won. Two separate bugs in this project came down to
+        # reading one config while writing another, and both were invisible.
+        print(f"config: {os.path.relpath(self._config_file_path, PROJECT_ROOT)}"
+              f"{'' if os.path.exists(self._config_file_path) else '  (absent — using defaults)'}")
+
         if not os.path.exists(self._config_file_path):
             return
 

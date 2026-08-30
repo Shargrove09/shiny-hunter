@@ -62,6 +62,84 @@ def validate_viewport(rect, ratio_tolerance: float = 0.01, scale_tolerance: floa
     return True, f"{scale:.2f}x native"
 
 
+def required_capture_aspect(viewport):
+    """The capture aspect ratio at which a fractional viewport lands on the game.
+
+    A fractional viewport crops w=fw*W by h=fh*H, so its aspect is
+    (fw*W)/(fh*H). Setting that equal to the GBA's 3:2 and solving gives a single
+    capture aspect W/H at which the fraction is correct -- and it is correct at
+    *every* size with that aspect, which is exactly why fractions survive a
+    window scaling but not a change of shape.
+
+    Returns None for a degenerate viewport.
+    """
+    if not viewport or len(viewport) < 4:
+        return None
+    _, _, width_fraction, height_fraction = (float(v) for v in viewport)
+    if width_fraction <= 0 or height_fraction <= 0:
+        return None
+    return GBA_RATIO * (height_fraction / width_fraction)
+
+
+def viewport_fits(viewport, shape):
+    """Does a stored viewport still land on the game in a capture of this shape?
+
+    Returns (ok, rect, reason). This is the cheap check -- pure arithmetic, no
+    detection -- and it is the one that catches a resized or reshaped window
+    immediately, on any frame, without needing a battle on screen.
+    """
+    if viewport is None:
+        return False, None, "no viewport configured"
+    try:
+        rect = resolve_region(viewport, shape)
+    except ValueError as error:
+        return False, None, str(error)
+    ok, reason = validate_viewport(rect)
+    return ok, rect, reason
+
+
+def explain_viewport_mismatch(viewport, shape, calibrated_at=None):
+    """Why a stored viewport no longer fits, in terms the user can act on."""
+    height, width = shape[0], shape[1]
+    ok, rect, reason = viewport_fits(viewport, shape)
+    if ok:
+        return f"viewport fits: {rect} — {reason}"
+
+    lines = [f"Stored game_viewport {list(viewport)} resolves to "
+             f"{rect[2]}x{rect[3]} on this {width}x{height} capture — {reason}."]
+
+    wanted = required_capture_aspect(viewport)
+    if wanted:
+        lines.append(f"That viewport only lands on the game when the capture is "
+                     f"{wanted:.3f}:1; this capture is {width / height:.3f}:1.")
+    if calibrated_at:
+        lines.append(f"It was calibrated against a "
+                     f"{int(calibrated_at[0])}x{int(calibrated_at[1])} capture.")
+    return "\n".join(lines)
+
+
+def viewport_for(frame, fallback, label=''):
+    """Detect the viewport in one frame rather than assuming the configured one.
+
+    The viewport is a property of the capture that produced a frame, not of the
+    current config. Cropping a stored sample with a newer viewport silently
+    yields a different region of the game -- the library then matches itself
+    perfectly and nothing else, which is how a rebuild can pass every test and
+    still be useless against a live screen.
+
+    Detection is trustworthy on battle screens; anything that fails validation
+    falls back to the supplied viewport.
+
+    Returns (viewport_fraction, source).
+    """
+    candidates = detect_game_viewport(frame)
+    if candidates:
+        ok, _ = validate_viewport(candidates[0]['pixels'])
+        if ok:
+            return candidates[0]['fraction'], 'detected'
+    return fallback, 'config fallback'
+
+
 def describe_scale(rect):
     """Human-readable note about how cleanly a viewport maps to native."""
     if not rect:

@@ -24,10 +24,11 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                 'src', 'shinyhunter'))
 
+from config import project_path  # noqa: E402
 from shiny_hunter_controller import ShinyHunterController, TIMEOUT  # noqa: E402
 from window_management import WindowManagerFactory  # noqa: E402
 
-HUNT_PATH = 'hunts/powerplant.json'
+HUNT_PATH = project_path('hunts/powerplant.json')
 
 
 def attach_window(controller, owner, allow_unfocused=False):

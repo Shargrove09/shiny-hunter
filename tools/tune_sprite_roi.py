@@ -27,11 +27,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 
-from config import ConfigManager  # noqa: E402
+from config import ConfigManager, project_path  # noqa: E402
 from image_processor import crop, describe_scale, resolve_region  # noqa: E402
 from screenshot_manager import ScreenshotManager  # noqa: E402
 
-CONFIG_PATH = 'shinyhunter_config.json'
+# The config in use, not one relative to whatever directory you happen to
+# be in -- a CWD-relative path meant writing one file and reading another.
+CONFIG_PATH = ConfigManager().path
 OUT_DIR = 'screenshots/diagnose'
 SPRITE_BOX = 64
 
@@ -181,7 +183,7 @@ def main():
         json.dump(stored, handle, indent=2)
     print(f"\nconfig   : enemy_sprite_roi = {chosen}")
 
-    hunt = 'hunts/powerplant.json'
+    hunt = project_path('hunts/powerplant.json')
     if os.path.exists(hunt):
         with open(hunt, encoding='utf-8') as handle:
             spec = json.load(handle)

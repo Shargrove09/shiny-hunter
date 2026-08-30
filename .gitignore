@@ -14,3 +14,9 @@ encounter_screen_template.png
 CLAUDE.md
 .DS_Store
 sprite_library/
+
+# Per-machine geometry (window owner, viewport, ROIs). The shared
+# shinyhunter_config.json stays tracked as the default; these do not, so a Mac
+# and a VM stop overwriting each other's calibration.
+shinyhunter_config.*.json
+src/shinyhunter/shinyhunter_config.json

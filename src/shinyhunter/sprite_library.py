@@ -80,9 +80,14 @@ def check_manifest(directory: str, capture_size, viewport, sprite_roi):
         return [f"could not read _manifest.json: {error}"]
 
     problems = []
-    # Only the sprite ROI matters now: every crop is normalised to native 240x160
-    # first, so window size and viewport drift no longer change what a crop
-    # contains. A changed ROI does.
+    # Only the sprite ROI is checked here: every crop is normalised to native
+    # 240x160 first, so window size no longer changes what a crop contains.
+    #
+    # That holds only while the viewport itself is right. A wrong viewport does
+    # not make crops fail, it makes them contain a different region of the game
+    # at the same 240x160 -- which is invisible to this check. Guarding that is
+    # ScreenshotManager.resolve_viewport's job, at the point of capture.
+    # A changed ROI is what this can see.
     stored = saved.get('enemy_sprite_roi')
     if stored and sprite_roi and [int(v) for v in stored] != [int(v) for v in sprite_roi]:
         problems.append(f"enemy_sprite_roi changed: library {stored} vs current "

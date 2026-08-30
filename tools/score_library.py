@@ -27,13 +27,11 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 
 from config import ConfigManager  # noqa: E402
-from image_processor import (crop, to_native, detect_game_viewport,  # noqa: E402
-                             validate_viewport)
+from image_processor import crop, to_native, viewport_for  # noqa: E402
 from sprite_library import (SpriteLibrary, to_canonical, sprite_mask,  # noqa: E402
                             shape_signature, palette_histogram,
                             shape_score, colour_distance)
 
-CONFIG_PATH = 'shinyhunter_config.json'
 
 
 def capture_geometry():
@@ -68,26 +66,6 @@ def hue_rotate(bgr, degrees=90, mask=None):
     if mask is not None:
         out = np.where(mask[:, :, None].astype(bool), out, bgr)
     return out
-
-
-def viewport_for(frame, fallback, label=''):
-    """Detect the game viewport in one stored sample rather than assuming today's.
-
-    The viewport is a property of the capture that produced a frame, not of the
-    current config. Cropping an old sample with a newer viewport silently yields a
-    different region of the game -- the library then matches itself perfectly and
-    nothing else, which is exactly how a rebuild can pass every test and still be
-    useless against a live screen.
-
-    Samples are battle screens, where detection is exact; anything that fails
-    validation falls back to the configured viewport.
-    """
-    candidates = detect_game_viewport(frame)
-    if candidates:
-        ok, _ = validate_viewport(candidates[0]['pixels'])
-        if ok:
-            return candidates[0]['fraction'], 'detected'
-    return fallback, 'config fallback'
 
 
 def load_sprites(hunt, config):

@@ -24,7 +24,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from shiny_hunter_controller import (ShinyHunterController, SHINY,  # noqa: E402
                                      NOT_SHINY, UNKNOWN_SPRITE, TIMEOUT,
                                      VERIFY_FAIL, ERROR)
+from config import project_path  # noqa: E402
 from image_processor import describe_scale, resolve_region  # noqa: E402
+from screenshot_manager import ViewportError  # noqa: E402
 from sprite_library import check_manifest  # noqa: E402
 from window_management import WindowManagerFactory  # noqa: E402
 
@@ -71,7 +73,7 @@ def attach_window(controller, owner, allow_unfocused=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('hunt', nargs='?', default='hunts/powerplant.json')
+    parser.add_argument('hunt', nargs='?', default=project_path('hunts/powerplant.json'))
     parser.add_argument('--max-encounters', type=int, default=0, help="0 = unlimited")
     parser.add_argument('--countdown', type=int, default=5)
     parser.add_argument('--ignore-geometry', action='store_true',
@@ -101,28 +103,40 @@ def main():
     probe = controller.screenshot_manager.grab_array()
     print(f"capture      : {probe.shape[1]}x{probe.shape[0]}")
 
-    # Re-derive the viewport rather than trusting the stored fraction. Detection is
-    # only reliable on a battle frame -- Gen 3's black map-edge fill reads as
-    # letterbox -- so an unvalidated result is discarded rather than believed.
+    # Resolve the viewport the same way the hunt will, so a broken one is caught
+    # here rather than as bad scores at 3am. This checks the stored fraction
+    # arithmetically too, which works from the overworld -- the previous check
+    # only ran when detection succeeded, i.e. only during a battle, which is not
+    # how a hunt is started.
+    try:
+        viewport = controller.screenshot_manager.resolve_viewport(probe)
+    except ViewportError as error:
+        print(f"\n!! {error}")
+        if not args.ignore_geometry:
+            sys.exit(1)
+        print("   --ignore-geometry given; continuing anyway.")
+        viewport = controller.config.game_viewport
+
+    rect = resolve_region(viewport, probe.shape)
+    source = controller.screenshot_manager.viewport_source or 'config'
+    print(f"viewport     : {rect}  {describe_scale(rect)}  [{source}]")
+
     detected, reason = controller.screenshot_manager.detect_viewport(probe)
     if detected:
         stored = resolve_region(controller.config.game_viewport, probe.shape)
         drift = max(abs(a - b) for a, b in zip(detected['pixels'], stored))
-        print(f"viewport     : {detected['pixels']}  {describe_scale(detected['pixels'])}")
         if drift > 4:
             print(f"\n!! The game viewport has moved by {drift}px since setup.")
             print(f"   stored {stored}  ->  detected {detected['pixels']}")
-            print("   Sprite crops will not line up with the library. Apply the")
-            print("   corrected viewport with:")
+            print("   The detected one is in use for this run; persist it with:")
             print(f"     python tools/setup_capture.py --owner "
                   f"{controller.config.capture_window_owner or 'Playback'} --write")
             if not args.ignore_geometry:
                 sys.exit(1)
             print("   --ignore-geometry given; continuing anyway.")
     else:
-        print(f"viewport     : not verifiable right now ({reason})")
-        print("               — normal outside a battle; it is re-checked on the "
-              "first encounter.")
+        print(f"               detection unavailable ({reason}) — normal outside "
+              "a battle; the stored viewport was validated arithmetically.")
 
     problems = check_manifest(library.directory, None,
                               controller.config.game_viewport,

@@ -30,7 +30,9 @@ from config import ConfigManager, project_path  # noqa: E402
 from image_processor import ImageProcessor, crop, describe_scale, resolve_region  # noqa: E402
 from screenshot_manager import ScreenshotManager  # noqa: E402
 
-CONFIG_PATH = 'shinyhunter_config.json'
+# The config in use, not one relative to whatever directory you happen to
+# be in -- a CWD-relative path meant writing one file and reading another.
+CONFIG_PATH = ConfigManager().path
 OUT_DIR = 'screenshots/diagnose'
 
 NAMES = ('battle_detector', 'battle_menu')

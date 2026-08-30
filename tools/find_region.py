@@ -26,8 +26,12 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 from PIL import Image  # noqa: E402
 
+from config import ConfigManager  # noqa: E402
+
 GBA_RATIO = 240 / 160  # 1.5
-CONFIG_PATH = 'shinyhunter_config.json'
+# The config in use, not one relative to whatever directory you happen to
+# be in -- a CWD-relative path meant writing one file and reading another.
+CONFIG_PATH = ConfigManager().path
 
 
 def grab_fullscreen():

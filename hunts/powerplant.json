@@ -1,30 +1,7 @@
 {
   "description": "Power Plant random encounters (FRLG). Walk back and forth until a wild battle starts, identify the species against the sprite library, flee if it is an ordinary one. ROIs are in native GBA pixels (240x160). Step types: press | pause | hold | combo | walk_until_encounter | wait_for_screen | check_library | verify_screen | check_shiny. Add \"jitter\": 0 to any timed step to opt out of the global timing jitter.",
   "hunt_name": "powerplant",
-  "rois": {
-    "battle_detector": [
-      80,
-      136,
-      40,
-      20
-    ],
-    "enemy_sprite": [
-      143,
-      8,
-      64,
-      64
-    ],
-    "battle_menu": [
-      136,
-      124,
-      40,
-      24
-    ]
-  },
-  "templates": {
-    "battle_detector": "./screenshots/templates/battle_ready.png",
-    "battle_menu": "./screenshots/templates/battle_menu.png"
-  },
+  "_geometry_note": "No 'rois' or 'templates' block on purpose. Those keys SHADOW the config, so a set of ROIs tuned on one machine would be silently overridden here on another. Omitted, each name falls through to <name>_roi / <name>_template in the per-host shinyhunter_config, which is where machine-specific geometry belongs. Add a 'rois' block back only to override a value for this hunt specifically, on every machine.",
   "sprite_library": "./sprite_library/powerplant",
   "on_not_shiny": "flee",
   "on_unknown_sprite": "pause",
